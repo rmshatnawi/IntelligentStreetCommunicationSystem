@@ -1,0 +1,6 @@
+{
+  "vehicleId": "string",
+  "rsuId": "string",
+  "timestamp": "ISO-8601",
+  "segmentId": "string"
+}
