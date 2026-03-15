@@ -1,22 +1,45 @@
-﻿# OS/IDE
-.DS_Store
+﻿# ============================================================
+# .gitignore
+# Project: Intelligent Street Communication System (ISCS)
+# ============================================================
+
+
+# ─── FIREBASE & SECRETS ─────────────────────────────────────
+# NEVER push these — they give full access to your database
+serviceAccountKey.json
+*.key.json
+.env
+
+
+# ─── PYTHON ─────────────────────────────────────────────────
+# Virtual environment — too large, recreated with pip install
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+
+# ─── NODE / OLD FIREBASE FUNCTIONS ──────────────────────────
+# Old JavaScript Firebase functions leftovers
+node_modules/
+*.log
+
+
+# ─── FLUTTER ────────────────────────────────────────────────
+# Build outputs and dependencies
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+
+
+# ─── VS CODE ────────────────────────────────────────────────
 .vscode/
-.idea/
 
-# Flutter
-**/build/
-**/.dart_tool/
-**/.flutter-plugins
-**/.flutter-plugins-dependencies
-**/.packages
 
-# Firebase / Node
-**/node_modules/
-**/.firebase/
-**/firebase-debug.log
-**/.runtimeconfig.json
-
-# Python
-**/__pycache__/
-**/*.pyc
-.venv/
+# ─── SYSTEM FILES ───────────────────────────────────────────
+.DS_Store
+Thumbs.db
