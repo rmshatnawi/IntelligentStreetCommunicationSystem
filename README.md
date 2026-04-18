@@ -1,85 +1,109 @@
-﻿# Intelligent Street Communication System (ISCS)
+# Intelligent Street Communication System (ISCS)
 
 **Graduation Project — Computer Engineering**  
-**Author: Raghad Shatnawi**  
-**Date: March 2026**
+**Jordan University of Science and Technology**  
+**Supervised by: Dr. Ali AL-Shatnawi**
+
+| Name | Role |
+|------|------|
+| Raghad Shatnawi |  System Architecture, Backend, RSU Simulator |
+| Batool Kreishan |  |
+| Batool AL-Khateeb |  |
+| Dana Altohul |  |
 
 ---
 
 ## Overview
 
-ISCS is a smart traffic monitoring system that uses Roadside Units (RSUs) to detect vehicles, analyze traffic conditions in real time, and alert drivers through a mobile application.
+ISCS is a distributed intelligent traffic monitoring system. Roadside Units (RSUs) detect vehicles and generate traffic events. A backend server ingests, stores, and analyzes those events. A Flutter mobile app delivers real-time traffic conditions and alerts to drivers.
+
+The system is currently in the base implementation phase. Core pipeline components are functional. Full feature implementation is in progress.
 
 ---
 
 ## System Architecture
+
 ```
-RSU Simulator (Python)
-        │
-        │  HTTP POST /ingest
-        ▼
-FastAPI Backend Server (Python)
-        │
-        ├── Validates incoming signals
-        ├── Saves to Firestore database
-        ├── Analyzes traffic congestion
-        └── Generates alerts
-        │
-        ▼
-Firestore Database (Firebase)
-        │
-        ▼
-Flutter Mobile App
-        │
-        ├── Displays live traffic map
-        └── Shows alerts to drivers
+RSU (Hardware Unit)  ──┐
+                       ├──  HTTP POST /ingest
+RSU Simulator (Python)─┘
+                            ▼
+                   FastAPI Backend Server
+                            │
+                   ┌────────┼────────┐
+                   │        │        │
+                Ingest   Analyze   API
+                   │        │        │
+                   └────────┴────────┘
+                            │
+                   Firestore Database
+                            │
+                   Flutter Mobile App
+                            │
+                   ┌────────┴────────┐
+                   │                 │
+              Driver View     Monitoring Dashboard
 ```
+
+---
+
+## RSU Components
+
+The system includes two RSU implementations that serve different purposes. Both send identical signals to the same `/ingest` endpoint and must remain in sync with the signal schema defined in `backend_server/models/signal_model.py`.
+
+### Hardware RSU (`services/RSU/`)
+A physical roadside sensing unit built for real deployment and hardware testing. Detects passing vehicles using onboard sensors and transmits structured traffic events to the backend server.
+
+### RSU Simulator (`rsu_simulator/`)
+A Python-based software simulator that runs on a laptop. Used for development, testing, and demonstrations without requiring physical hardware. Simulates multiple RSUs running simultaneously via multithreading, each generating randomized but realistic vehicle detection data.
 
 ---
 
 ## Project Structure
+
 ```
 GP_ISCS/
-├── IntelligentStreetCommunicationSystem/
-│   └── backend_server/
-│       └── functions/              ← FastAPI server
-│           ├── main.py             ← server entry point
-│           ├── config.py           ← all settings
-│           ├── requirements.txt    ← Python packages
-│           ├── models/
-│           │   └── signal_model.py ← signal data structure
-│           └── routes/
-│               ├── ingest.py       ← receives RSU signals
-│               ├── analyze.py      ← traffic analysis
-│               └── api.py          ← Flutter endpoints
-└── RSU_Simulator/
-    ├── main.py                     ← simulator entry point
-    ├── config.py                   ← RSU settings
-    ├── core/
-    │   └── publisher.py            ← sends signals to server
-    └── models/
-        └── signal.py               ← builds signal objects
+├── README.md
+├── .gitignore
+│
+├── rsu_simulator/              ← Python simulator (development & testing)
+│   ├── main.py                 ← entry point, starts all RSU threads
+│   ├── config.py               ← RSU definitions, server URL, simulation settings
+│   ├── core/
+│   │   └── publisher.py        ← sends signals to server via HTTP POST
+│   └── models/
+│       └── signal.py           ← builds signal objects
+│
+├── services/
+│   └── RSU/                    ← physical hardware RSU implementation
+│
+├── backend_server/
+│   └── functions/
+│       ├── main.py             ← FastAPI entry point
+│       ├── config.py           ← server settings, Firestore collection names, thresholds
+│       ├── requirements.txt
+│       ├── models/
+│       │   └── signal_model.py ← signal schema (source of truth for all components)
+│       └── routes/
+│           ├── ingest.py       ← receives and stores RSU signals
+│           ├── analyze.py      ← traffic analysis and alert generation
+│           └── api.py          ← Flutter-facing endpoints
+│
+├── mobile_app/                 ← Flutter application (in progress)
+│
+└── docs/
+    ├── SRS/                    ← Software Requirements Specification
+    ├── report/                 ← GP1 report
+    ├── diagrams/
+    └── signal_model.md         ← signal schema documentation
 ```
 
 ---
 
-## Server Endpoints
+## Signal Schema
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/ingest` | Receive signal from RSU |
-| GET | `/analyze/{segment}` | Analyze traffic for a segment |
-| GET | `/signals` | Get all latest signals |
-| GET | `/signals/{segment}` | Get signals for a segment |
-| GET | `/alerts` | Get all active alerts |
-| GET | `/alerts/{segment}` | Get alerts for a segment |
-| GET | `/health` | Server health check |
+Every RSU — hardware or simulator — sends signals in this format. This schema is the single source of truth. Any change must be reflected in both RSU implementations and the backend model.
 
----
-
-## Signal Structure
-
-Every RSU sends a signal in this format:
 ```json
 {
   "event_id":      "uuid",
@@ -92,43 +116,87 @@ Every RSU sends a signal in this format:
 }
 ```
 
+See `docs/signal_model.md` for full field definitions.
+
+---
+
+## Server Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/ingest` | Receive signal from RSU |
+| GET | `/analyze/{segment}` | Analyze traffic for a segment |
+| GET | `/signals` | Get latest signals (all segments) |
+| GET | `/signals/{segment}` | Get latest signals for a segment |
+| GET | `/alerts` | Get all active alerts |
+| GET | `/alerts/{segment}` | Get alerts for a segment |
+| GET | `/health` | Server health check |
+
 ---
 
 ## Traffic Status Levels
 
-| Status | Speed |
-|--------|-------|
-| Free | above 60 km/h |
-| Moderate | 40 - 60 km/h |
-| Congested | 20 - 40 km/h |
-| Severe | below 20 km/h |
+| Status | Average Speed |
+|--------|---------------|
+| Free | ≥ 60 km/h |
+| Moderate | 40 – 59 km/h |
+| Congested | 20 – 39 km/h |
+| Severe | < 20 km/h |
 
 ---
 
 ## How to Run
 
-### 1. Backend Server
+### Backend Server
+
 ```bash
-cd IntelligentStreetCommunicationSystem/backend_server/functions
+cd backend_server/functions
 python -m venv venv
-venv\Scripts\activate
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
 python main.py
 ```
 
-> Add your `serviceAccountKey.json` to the `functions/` folder before running.
+> Place `serviceAccountKey.json` in the `functions/` folder before running. Never commit this file.
 
-### 2. RSU Simulator
+### RSU Simulator
+
 ```bash
-cd RSU_Simulator
+cd rsu_simulator
 python main.py
 ```
 
+Server must be running before starting the simulator.
+
 ---
 
-## Future Improvements
+## Implementation Status
 
-- Machine learning module for congestion prediction
+| Component | Status |
+|-----------|--------|
+| RSU Simulator | Done |
+| Signal ingestion (`/ingest`) | Done |
+| Traffic analysis (`/analyze`) | Done — base version |
+| Flutter API endpoints | Done |
+| Alert generation | Partial — schema incomplete |
+| SegmentTrafficSummary | Not started |
+| Firebase Authentication | Not started |
+| Role-based access control | Not started |
+| Flutter mobile app | Not started |
+| Time-window aggregation | Not started |
+| Baseline/anomaly logic | Not started |
+| External API integration | Not started |
+
+---
+
+## Planned Improvements
+
+- Time-windowed traffic aggregation (60-second windows)
+- Rolling baseline comparison and persistence-based alert suppression
+- Full `TrafficAlert` schema with severity, trigger condition, and status
+- Firebase Authentication with role-based access (Driver / Admin / Public Safety)
+- Flutter mobile app with live traffic map and alert notifications
+- Authorized monitoring dashboard
+- ML-based congestion prediction module
 - Docker containerization for production deployment
-- Real RSU hardware integration
-- Historical traffic pattern analysis
