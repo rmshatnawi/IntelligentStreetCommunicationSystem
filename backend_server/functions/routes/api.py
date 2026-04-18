@@ -2,16 +2,25 @@
 # Project:  Intelligent Street Communication System (ISCS)
 # File:     routes/api.py
 # Author:   Raghad Shatnawi
-# Date:     March 2026
+# Last Modified: 18 April 2026
 # Purpose:  Provides endpoints for the Flutter mobile app.
 #           Flutter calls these to display live traffic data,
 #           road segment statuses, and active alerts.
+#
+#           All routes require authentication.
+#           Role access per route:
+#             /signals          — driver, public_safety, admin
+#             /signals/{segment}— driver, public_safety, admin
+#             /alerts           — driver, public_safety, admin
+#             /alerts/{segment} — driver, public_safety, admin
 # ============================================================
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 from config import SIGNALS_COLLECTION, ALERTS_COLLECTION
+from core.auth import require_driver
+from models.user_model import AuthenticatedUser
 
 router = APIRouter()
 
@@ -20,14 +29,17 @@ router = APIRouter()
 # Returns the latest signals across all segments.
 # Flutter uses this to display a live feed of RSU activity.
 #
-# URL:    GET http://<server-ip>:8000/signals
-# Returns: list of the last 20 signals
+# Auth: driver, public_safety, admin
+# URL:  GET http://<server-ip>:8000/signals
+
 @router.get("/signals")
-async def get_signals(request: Request):
+async def get_signals(
+    request: Request,
+    user: AuthenticatedUser = Depends(require_driver),
+):
     try:
         db = request.state.db
 
-        # fetch last 20 signals ordered by received_at
         docs = (
             db.collection(SIGNALS_COLLECTION)
             .order_by("received_at", direction="DESCENDING")
@@ -52,11 +64,15 @@ async def get_signals(request: Request):
 # Returns the latest signals for a specific road segment.
 # Flutter uses this to show details when a driver taps a segment.
 #
-# URL:    GET http://<server-ip>:8000/signals/{segment}
-# Params: segment — road segment name e.g. "Petra St"
-# Returns: list of the last 10 signals for that segment
+# Auth: driver, public_safety, admin
+# URL:  GET http://<server-ip>:8000/signals/{segment}
+
 @router.get("/signals/{segment}")
-async def get_signals_by_segment(segment: str, request: Request):
+async def get_signals_by_segment(
+    segment: str,
+    request: Request,
+    user: AuthenticatedUser = Depends(require_driver),
+):
     try:
         db = request.state.db
 
@@ -95,16 +111,20 @@ async def get_signals_by_segment(segment: str, request: Request):
 # Returns all active traffic alerts.
 # Flutter uses this to show warnings to drivers on the map.
 #
-# URL:    GET http://<server-ip>:8000/alerts
-# Returns: list of the last 10 alerts
+# Auth: driver, public_safety, admin
+# URL:  GET http://<server-ip>:8000/alerts
+
 @router.get("/alerts")
-async def get_alerts(request: Request):
+async def get_alerts(
+    request: Request,
+    user: AuthenticatedUser = Depends(require_driver),
+):
     try:
         db = request.state.db
 
         docs = (
             db.collection(ALERTS_COLLECTION)
-            .order_by("analyzed_at", direction="DESCENDING")
+            .order_by("generated_at", direction="DESCENDING")
             .limit(10)
             .stream()
         )
@@ -113,8 +133,8 @@ async def get_alerts(request: Request):
 
         return {
             "success": True,
-            "count":  len(alerts),
-            "alerts": alerts,
+            "count":   len(alerts),
+            "alerts":  alerts,
         }
 
     except Exception as e:
@@ -126,18 +146,22 @@ async def get_alerts(request: Request):
 # Returns alerts for a specific road segment.
 # Flutter uses this to show segment-specific warnings.
 #
-# URL:    GET http://<server-ip>:8000/alerts/{segment}
-# Params: segment — road segment name e.g. "Petra St"
-# Returns: list of the last 5 alerts for that segment
+# Auth: driver, public_safety, admin
+# URL:  GET http://<server-ip>:8000/alerts/{segment}
+
 @router.get("/alerts/{segment}")
-async def get_alerts_by_segment(segment: str, request: Request):
+async def get_alerts_by_segment(
+    segment: str,
+    request: Request,
+    user: AuthenticatedUser = Depends(require_driver),
+):
     try:
         db = request.state.db
 
         docs = (
             db.collection(ALERTS_COLLECTION)
             .where(filter=FieldFilter("segment", "==", segment))
-            .order_by("analyzed_at", direction="DESCENDING")
+            .order_by("generated_at", direction="DESCENDING")
             .limit(5)
             .stream()
         )
