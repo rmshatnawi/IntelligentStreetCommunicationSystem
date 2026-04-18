@@ -151,7 +151,7 @@ See `docs/signal_model.md` for full field definitions.
 
 ```bash
 cd backend_server/functions
-python3.14 -m venv venv
+python -m venv venv
 venv\Scripts\activate        # Windows
 source venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
