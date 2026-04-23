@@ -15,22 +15,32 @@
 // ============================================================
 
 import 'package:logger/logger.dart';
-
+ 
 class TLoggerHelper {
+  TLoggerHelper._(); // Private constructor — use static methods only
+ 
+  // Single shared Logger instance for the whole app
   static final Logger _logger = Logger();
-
+ 
+  // ─── LOG LEVELS ──────────────────────────────────────────────
+ 
+  // For general informational messages (e.g., screen loaded, data received)
   static void logInfo(String message) {
     _logger.i(message);
   }
-
+ 
+  // For errors and exceptions (e.g., API failure, null data)
   static void logError(String message) {
     _logger.e(message);
   }
-
+ 
+  // For non-critical warnings (e.g., empty list returned, slow response)
   static void logWarning(String message) {
     _logger.w(message);
   }
-
-  //debug,info,
-  // Add more helper methods as needed, such as logging with different levels, formatting messages, etc.
+ 
+  // For verbose debug output during development only
+  static void logDebug(String message) {
+    _logger.d(message);
+  }
 }

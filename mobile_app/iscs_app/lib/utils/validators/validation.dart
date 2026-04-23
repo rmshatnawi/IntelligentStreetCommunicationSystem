@@ -15,28 +15,44 @@
 // ============================================================
 
 class TValidator {
+  TValidator._(); // Private constructor — use static methods only
+ 
+  // ─── EMAIL ───────────────────────────────────────────────────
+  // Validates email format using a standard regex.
+  // Returns null on valid input, error string otherwise.
   static String? validateEmail(String? value) {
     if (value == null || value.isEmpty) {
-      return "Email cannot be empty";
+      return 'Email cannot be empty';
     }
-    //regex for email validation
-    String pattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
-    RegExp regex = RegExp(pattern);
+    final pattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
+    final regex = RegExp(pattern);
     if (!regex.hasMatch(value)) {
-      return "Please enter a valid email address";
+      return 'Please enter a valid email address';
     }
     return null;
   }
-
+ 
+  // ─── PASSWORD ────────────────────────────────────────────────
+  // Validates password minimum length (6 characters).
+  // Returns null on valid input, error string otherwise.
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return "Password cannot be empty";
+      return 'Password cannot be empty';
     }
     if (value.length < 6) {
-      return "Password must be at least 6 characters long";
+      return 'Password must be at least 6 characters long';
     }
     return null;
   }
-
-  // Add more validation methods as needed, such as for phone numbers, usernames, etc.
+ 
+  // ─── REQUIRED FIELD ──────────────────────────────────────────
+  // Generic non-empty check for any required field.
+  // Pass fieldName to customize the error message.
+  static String? validateRequired(String? value, {String fieldName = 'Field'}) {
+    if (value == null || value.trim().isEmpty) {
+      return '$fieldName cannot be empty';
+    }
+    return null;
+  }
 }
+ 

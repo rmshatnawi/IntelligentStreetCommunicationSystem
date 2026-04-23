@@ -13,12 +13,19 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
+import 'package:iscs_app/utils/constants/api_constants.dart';
+ 
 class THttpHelper {
-  static String _baseUrl =
-      'https://api.example.com'; // Replace with your API base URL
-
-  //helper method for GET requests
+  THttpHelper._(); // Private constructor — use static methods only
+ 
+  // Base URL sourced from api_constants.dart
+  static const String _baseUrl = TApiConstants.baseUrl;
+ 
+  // ─── GET ─────────────────────────────────────────────────────
+  // Fetches data from the server.
+  // endpoint: path after the base URL, e.g. '/signals'
+  // Returns: decoded JSON (Map or List)
+  // Throws: Exception on non-200 status or network failure
   static Future<dynamic> get(String endpoint) async {
     final url = Uri.parse('$_baseUrl$endpoint');
     try {
@@ -26,14 +33,19 @@ class THttpHelper {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
-        throw Exception('Failed to load data: ${response.statusCode}');
+        throw Exception('GET failed: ${response.statusCode} — $endpoint');
       }
     } catch (e) {
-      throw Exception('Error making GET request: $e');
+      throw Exception('GET error on $endpoint: $e');
     }
   }
-
-  //helper method for POST requests
+ 
+  // ─── POST ────────────────────────────────────────────────────
+  // Sends data to the server.
+  // endpoint: path after the base URL
+  // data: map to serialize as JSON body
+  // Returns: decoded JSON response body
+  // Throws: Exception on non-200/201 status or network failure
   static Future<dynamic> post(
     String endpoint,
     Map<String, dynamic> data,
@@ -48,14 +60,17 @@ class THttpHelper {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return jsonDecode(response.body);
       } else {
-        throw Exception('Failed to post data: ${response.statusCode}');
+        throw Exception('POST failed: ${response.statusCode} — $endpoint');
       }
     } catch (e) {
-      throw Exception('Error making POST request: $e');
+      throw Exception('POST error on $endpoint: $e');
     }
   }
-
-  //handler for PUT requests
+ 
+  // ─── PUT ─────────────────────────────────────────────────────
+  // Updates an existing resource on the server.
+  // endpoint: path after the base URL
+  // data: map of updated fields
   static Future<dynamic> put(String endpoint, Map<String, dynamic> data) async {
     final url = Uri.parse('$_baseUrl$endpoint');
     try {
@@ -67,23 +82,26 @@ class THttpHelper {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
-        throw Exception('Failed to update data: ${response.statusCode}');
+        throw Exception('PUT failed: ${response.statusCode} — $endpoint');
       }
     } catch (e) {
-      throw Exception('Error making PUT request: $e');
+      throw Exception('PUT error on $endpoint: $e');
     }
   }
-
-  //handler for DELETE requests
+ 
+  // ─── DELETE ──────────────────────────────────────────────────
+  // Deletes a resource on the server.
+  // endpoint: path after the base URL including resource ID
   static Future<void> delete(String endpoint) async {
     final url = Uri.parse('$_baseUrl$endpoint');
     try {
       final response = await http.delete(url);
       if (response.statusCode != 200) {
-        throw Exception('Failed to delete data: ${response.statusCode}');
+        throw Exception('DELETE failed: ${response.statusCode} — $endpoint');
       }
     } catch (e) {
-      throw Exception('Error making DELETE request: $e');
+      throw Exception('DELETE error on $endpoint: $e');
     }
   }
 }
+ 

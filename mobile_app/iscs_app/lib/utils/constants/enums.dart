@@ -8,4 +8,13 @@
 //           and makes conditionals type-safe.
 // ============================================================
 
+
+// ─── TextSizes ───────────────────────────────────────────────
+// Used to pass a size intent to reusable text widgets
+// instead of hardcoding font sizes directly.
 enum TextSizes { small, medium, large, extraLarge }
+ 
+// ─── TrafficStatus ───────────────────────────────────────────
+// Mirrors the backend traffic status strings from analyze.py.
+// Used to drive UI color and icon choices on the map screen.
+enum TrafficStatus { free, moderate, congested, severe }
