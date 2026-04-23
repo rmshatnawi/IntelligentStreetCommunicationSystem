@@ -1,3 +1,16 @@
+// ============================================================
+// Project:  Intelligent Street Communication System (ISCS)
+// File:     lib/utils/theme/theme.dart
+// Author:   Raghad Shatnawi
+// Last Modified: April 2026
+// Purpose:  Assembles the complete ThemeData objects for light
+//           and dark mode by composing all sub-theme classes.
+//           This is the single file referenced in main.dart —
+//           all theme changes go through sub-theme files in
+//           the custom_theme/ folder, not here directly.
+// ============================================================
+
+
 import 'package:flutter/material.dart';
 import 'package:iscs_app/utils/theme/custom_theme/text_theme.dart';
 

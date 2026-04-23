@@ -1,3 +1,16 @@
+// ============================================================
+// Project:  Intelligent Street Communication System (ISCS)
+// File:     lib/utils/device/device_utility.dart
+// Author:   Raghad Shatnawi
+// Last Modified: April 2026
+// Purpose:  Provides device-level utility methods used across
+//           the app — keyboard dismissal, status bar color,
+//           orientation checks, fullscreen toggle, and
+//           internet connectivity checking.
+//
+// ============================================================
+
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

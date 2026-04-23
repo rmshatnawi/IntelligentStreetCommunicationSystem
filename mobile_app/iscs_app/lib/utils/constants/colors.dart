@@ -1,3 +1,14 @@
+// ============================================================
+// Project:  Intelligent Street Communication System (ISCS)
+// File:     lib/utils/constants/colors.dart
+// Author:   Raghad Shatnawi
+// Last Modified: April 2026
+// Purpose:  Defines all brand and UI colors used across the app.
+//           All widgets must reference colors from here — never
+//           use hardcoded Color() values in widget files.
+//           Each color has a light and dark mode variant where needed.
+// ============================================================
+
 import 'package:flutter/material.dart';
 
 class TColors {

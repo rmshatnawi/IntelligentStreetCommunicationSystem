@@ -1,3 +1,19 @@
+
+// ============================================================
+// Project:  Intelligent Street Communication System (ISCS)
+// File:     lib/utils/validators/validation.dart
+// Author:   Raghad Shatnawi
+// Last Modified: April 2026
+// Purpose:  Provides form field validator functions.
+//           Each method returns null if the input is valid,
+//           or a String error message if it is not.
+//           Pass these directly to TextFormField's validator:
+//
+//           TextFormField(
+//             validator: TValidator.validateEmail,
+//           )
+// ============================================================
+
 class TValidator {
   static String? validateEmail(String? value) {
     if (value == null || value.isEmpty) {

@@ -1,3 +1,16 @@
+// ============================================================
+// Project:  Intelligent Street Communication System (ISCS)
+// File:     lib/utils/http/http_client.dart
+// Author:   Raghad Shatnawi
+// Last Modified: April 2026
+// Purpose:  Generic HTTP wrapper for communicating with the
+//           FastAPI backend server.
+//           Provides GET, POST, PUT, DELETE methods.
+//           All API calls in the app must go through this class.
+//           Base URL is read from TApiConstants — never hardcode
+//           URLs here or in any other file.
+// ============================================================
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
