@@ -1,0 +1,59 @@
+name: iscs_app
+description: "Intelligent Street Communication System."
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+#-----------------packages-----------------#
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # utility packages
+  http: ^1.6.0
+  //shared_preferences: ^2.5.4
+  logger: ^2.7.0
+  url_launcher: ^6.3.2
+  intl: ^0.20.2
+
+  # icons
+  icons_plus: ^5.0.0
+  cupertino_icons: ^1.0.8
+
+  # state management
+  get: ^4.6.6
+  get_storage: ^2.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.7
+
+#---------------packages end----------------#
+
+flutter:
+  uses-material-design: true
+
+  # local assets
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/logos/
+
+  # local fonts
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
