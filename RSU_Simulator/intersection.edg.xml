@@ -1,0 +1,10 @@
+<edges>
+    <edge id="L_to_C" from="left" to="center" numLanes="2" speed="11.11"/>
+    <edge id="C_to_R" from="center" to="right" numLanes="2" speed="11.11"/>
+    <edge id="R_to_C" from="right" to="center" numLanes="2" speed="11.11"/>
+    <edge id="C_to_L" from="center" to="left" numLanes="2" speed="11.11"/>
+    <edge id="T_to_C" from="top" to="center" numLanes="2" speed="11.11"/>
+    <edge id="C_to_B" from="center" to="bottom" numLanes="2" speed="11.11"/>
+    <edge id="B_to_C" from="bottom" to="center" numLanes="2" speed="11.11"/>
+    <edge id="C_to_T" from="center" to="top" numLanes="2" speed="11.11"/>
+</edges>

@@ -1,0 +1,18 @@
+<additional>
+    <inductionLoop id="RSU_L_to_C_Start_L0" lane="L_to_C_0" pos="5" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_L_to_C_Start_L1" lane="L_to_C_1" pos="5" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_L_to_C_End_L0" lane="L_to_C_0" pos="130" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_L_to_C_End_L1" lane="L_to_C_1" pos="130" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_R_to_C_Start_L0" lane="R_to_C_0" pos="5" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_R_to_C_Start_L1" lane="R_to_C_1" pos="5" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_R_to_C_End_L0" lane="R_to_C_0" pos="130" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_R_to_C_End_L1" lane="R_to_C_1" pos="130" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_T_to_C_Start_L0" lane="T_to_C_0" pos="5" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_T_to_C_Start_L1" lane="T_to_C_1" pos="5" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_T_to_C_End_L0" lane="T_to_C_0" pos="130" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_T_to_C_End_L1" lane="T_to_C_1" pos="130" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_B_to_C_Start_L0" lane="B_to_C_0" pos="5" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_B_to_C_Start_L1" lane="B_to_C_1" pos="5" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_B_to_C_End_L0" lane="B_to_C_0" pos="130" freq="1" file="out.xml"/>
+    <inductionLoop id="RSU_B_to_C_End_L1" lane="B_to_C_1" pos="130" freq="1" file="out.xml"/>
+</additional>
