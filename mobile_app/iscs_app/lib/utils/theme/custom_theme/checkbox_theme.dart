@@ -4,15 +4,15 @@ class TCheckboxTheme {
   TCheckboxTheme._(); // Private constructor to prevent instantiation
 
   static CheckboxThemeData lightCheckboxTheme = CheckboxThemeData(
-    fillColor: MaterialStateProperty.resolveWith((states) {
-      if (states.contains(MaterialState.selected)) {
+    fillColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) {
         return Colors.blue; // Color for selected state
       } else {
         return Colors.transparent; // Default color for unselected state
       }
     }),
-    checkColor: MaterialStateProperty.resolveWith((states) {
-      if (states.contains(MaterialState.selected)) {
+    checkColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) {
         return Colors.white; // Color for disabled state
       } else {
         return Colors.black; // Default color for enabled state
@@ -22,9 +22,9 @@ class TCheckboxTheme {
   );
 
   static CheckboxThemeData darkCheckboxTheme = CheckboxThemeData(
-    fillColor: MaterialStateProperty.all(Colors.blue),
-    checkColor: MaterialStateProperty.resolveWith((states) {
-      if (states.contains(MaterialState.selected)) {
+    fillColor: WidgetStateProperty.all(Colors.blue),
+    checkColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) {
         return Colors.white; // Color for disabled state
       } else {
         return Colors.black; // Default color for enabled state

@@ -1,3 +1,8 @@
+# ----------------------------------------------------------
+# Author: Raghad Shatnawi
+# Last Modified: 8 May 2026
+# ----------------------------------------------------------
+
 name: iscs_app
 description: "Intelligent Street Communication System."
 
@@ -13,26 +18,43 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # utility packages
+  # Firebase
+  firebase_core: ^4.6.0
+  firebase_auth: ^6.1.4
+  firebase_messaging: ^16.1.2
+
+  # Maps & Location
+  google_maps_flutter: ^2.15.0
+  geolocator: ^14.0.2
+
+  # Permissions
+  permission_handler: ^12.0.1
+
+  # Notifications
+  flutter_local_notifications: ^21.0.0
+
+  # Utility packages
   http: ^1.6.0
-  //shared_preferences: ^2.5.4
+  shared_preferences: ^2.5.4
   logger: ^2.7.0
   url_launcher: ^6.3.2
   intl: ^0.20.2
 
-  # icons
+  # Icons
   icons_plus: ^5.0.0
   cupertino_icons: ^1.0.8
 
-  # state management
-  get: ^4.6.6
+  # State management
+  get: ^4.7.3
   get_storage: ^2.0.3
+
+  flutter_native_splash: ^2.4.7
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  flutter_native_splash: ^2.4.7
+
 
 #---------------packages end----------------#
 

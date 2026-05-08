@@ -35,17 +35,17 @@ MAX_SIGNALS = None
 RSUS = [
     {
         "rsu_id":  "RSU_01",
-        "segment": "Petra St",
+        "segment": "street1 St",
         "direction": "Northbound"
     },
     {
         "rsu_id":  "RSU_02",
-        "segment": "Queen Alia St",
+        "segment": "street2 St",
         "direction": "Southbound"
     },
     {
         "rsu_id":  "RSU_03",
-        "segment": "University St",
+        "segment": "street3 St",
         "direction": "Eastbound"
     },
 ]

@@ -10,7 +10,10 @@
 //           All formatting logic lives here — never format
 //           display values inline inside widget build methods.
 // ============================================================
- 
+
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
 class TFormatter {
   TFormatter._(); // Private constructor — use static methods only
  
