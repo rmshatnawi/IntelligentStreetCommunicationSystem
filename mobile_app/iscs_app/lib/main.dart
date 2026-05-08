@@ -17,6 +17,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'package:iscs_app/firebase_options.dart';
 import 'package:iscs_app/features/authentication/screens/auth_gate.dart';
+import 'package:iscs_app/data/services/auth_service.dart';
 import 'package:iscs_app/utils/theme/theme.dart';
 
 Future<void> main() async {

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "794649373948",
+    "firebase_url": "https://smartstreetintelligencesystem-default-rtdb.firebaseio.com",
+    "project_id": "smartstreetintelligencesystem",
+    "storage_bucket": "smartstreetintelligencesystem.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:794649373948:android:bc9fa0de34436fa1797b79",
+        "android_client_info": {
+          "package_name": "com.example.iscs_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBb6qPso_juAtd3Wpjo59mNSmusiOFEEII"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
