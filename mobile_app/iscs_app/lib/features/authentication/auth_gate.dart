@@ -14,10 +14,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'package:iscs_app/data/services/auth_service.dart';
-// TODO: replace these placeholder imports with actual screen paths
-// once LoginScreen and HomeScreen are built.
-import 'package:iscs_app/features/authentication/screens/login_screen.dart';
-import 'package:iscs_app/features/home/screens/home_screen.dart';
+
+import 'package:iscs_app/features/screens/login_screen.dart';
+import 'package:iscs_app/features/screens/home_screen.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
