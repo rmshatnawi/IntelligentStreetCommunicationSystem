@@ -20,9 +20,9 @@ WINDOW_SECONDS = 60
 
 
 SEGMENT_LENGTH_KM = {
-    "Petra St": 0.5,
-    "University St": 0.8,
-    "Main St": 1.0,
+    "street1 St": 0.5,
+    "street2 St": 0.8,
+    "street3 St": 1.0,
 }
 
 
