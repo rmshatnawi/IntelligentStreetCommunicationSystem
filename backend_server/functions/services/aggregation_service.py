@@ -16,6 +16,7 @@ from models.summary_model import SegmentTrafficSummary
 from config import SIGNALS_COLLECTION, SEGMENTS_COLLECTION
 from services.alert import generate_alert
 
+
 WINDOW_SECONDS = 60
 
 
@@ -30,12 +31,12 @@ def get_window_start(timestamp: datetime) -> datetime:
     return timestamp.replace(second=0, microsecond=0)
 
 
-def classify_traffic(avg_speed: float) -> str:
-    if avg_speed < 20:
+def classify_traffic(avg_speed: float, density_proxy: float) -> str:
+    if avg_speed < 20 and density_proxy > 100:
         return "severe"
-    elif avg_speed < 40:
+    elif avg_speed < 40 or density_proxy > 70:
         return "congested"
-    elif avg_speed < 60:
+    elif avg_speed < 60 or density_proxy > 40:
         return "moderate"
     return "free"
 
@@ -54,7 +55,7 @@ def build_summary(segment: str, signals: list):
     segment_length = SEGMENT_LENGTH_KM.get(segment, 1.0)
     density_proxy = vehicle_count / segment_length
 
-    traffic_state = classify_traffic(avg_speed)
+    traffic_state = classify_traffic(avg_speed, density_proxy)
 
     return SegmentTrafficSummary(
         segment=segment,
@@ -101,7 +102,7 @@ def generate_summaries(db):
 
         key = (
             data["segment"],
-            signal_window_start
+            signal_window_start,
         )
 
         grouped_signals[key].append(data)
@@ -153,6 +154,8 @@ def generate_summaries(db):
             f"State={summary.traffic_state}"
         )
 
-        db.collection(SEGMENTS_COLLECTION).document(doc_id).set(summary_data)
+        db.collection(SEGMENTS_COLLECTION)\
+            .document(doc_id)\
+            .set(summary_data)
+
         generate_alert(summary, db)
-        
