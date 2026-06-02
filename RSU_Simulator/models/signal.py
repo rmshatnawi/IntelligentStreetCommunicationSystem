@@ -6,6 +6,10 @@
 # Purpose:  Defines the signal data structure used by the
 #           RSU Simulator when building signals to send
 #           to the server.
+# Updates (May 2026 - Dana Omar)
+#   - Added plate_number field to generated signals.
+#   - Added vehicle identification support.
+#   - Added Stolen Car Detection support. 
 # ============================================================
 
 import uuid
@@ -29,7 +33,8 @@ def build_signal(
     segment:       str,
     speed:         float,
     vehicle_count: int,
-    direction:     str = "Unknown"
+    direction:     str = "Unknown",
+    plate_number:  str = "Unknown"
 ) -> dict:
 
     return {
@@ -40,4 +45,5 @@ def build_signal(
         "speed":         speed,
         "direction":     direction,
         "vehicle_count": vehicle_count,
+        "plate_number":  plate_number,
     }
