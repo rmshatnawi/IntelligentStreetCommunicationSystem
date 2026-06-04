@@ -7,6 +7,9 @@
 #           All settings live here so if anything changes
 #           (port, collection names, etc.) we only update
 #           this one file and everything else adapts.
+# Updates (May 2026 - Dana Omar)
+#   - Added Firestore collections for Vehicle Tracking.
+#   - Added Firestore collection for Stolen Vehicle Detection.
 # ============================================================
 
 
@@ -21,8 +24,10 @@ PORT = 8000        # port the server runs on (http://localhost:8000)
 # change it in one place instead of hunting through every file.
 SIGNALS_COLLECTION   = "signals"    # stores raw RSU signals
 ALERTS_COLLECTION    = "alerts"     # stores generated traffic alerts
-SEGMENTS_COLLECTION  = "segments"   # stores road segment summaries
-
+SEGMENTS_COLLECTION = "traffic_summaries"  # stores road segment summaries
+STOLEN_VEHICLES_COLLECTION = "stolen_vehicles" # Stores stolen vehicle records
+VEHICLE_TRACKING_COLLECTION = "vehicle_tracking" # Stores vehicle movement/tracking records
+SECURITY_ALERTS_COLLECTION = "security_alerts" # Stores security alerts like stolen vehicle detections
 
 # ─── TRAFFIC THRESHOLDS ─────────────────────────────────────
 # These values are used by analyze.py to decide the traffic status
