@@ -9,6 +9,11 @@
 #           the FastAPI server at a regular interval.
 #           Uses multithreading so all RSUs run in parallel
 #           exactly as they would in a real deployment.
+# Updates (May 2026 - Dana Omar)
+#   - Added simulated vehicle plate numbers.
+#   - Added random plate number generation.
+#   - Added Vehicle Tracking support.
+#   - Added Stolen Car Detection support.
 # ============================================================
 print("main.py is starting...")
 import time
@@ -40,11 +45,37 @@ from models.signal import build_signal
 #
 # Parameters:
 #   rsu — dictionary with rsu_id, segment, direction
+
+# Sample vehicle plate numbers used by the simulator
+# to emulate vehicle identification.
+PLATE_NUMBERS = [
+    "ABC-123",
+    "XYZ-555",
+    "DEF-202",
+    "JKL-777",
+    "MNO-888",
+    "PQR-111",
+    "TUV-222",
+    "WXY-333",
+    "AAA-444",
+    "BBB-555",
+    "CCC-666",
+    "DDD-777",
+    "EEE-888",
+    "FFF-999",
+    "GGG-101",
+    "HHH-202",
+    "III-303",
+    "JJJ-404",
+    "STL-999",
+    "STL-555",
+]
+
 def simulate_rsu(rsu: dict):
     rsu_id    = rsu["rsu_id"]
     segment   = rsu["segment"]
     direction = rsu["direction"]
-
+ 
     print(f"[START] {rsu_id} is now active on segment: {segment}")
 
     signal_count = 0
@@ -61,6 +92,8 @@ def simulate_rsu(rsu: dict):
         # Here we generate random realistic values.
         speed         = round(random.uniform(SPEED_MIN, SPEED_MAX), 1)
         vehicle_count = random.randint(VEHICLE_COUNT_MIN, VEHICLE_COUNT_MAX)
+        plate_number = random.choice(PLATE_NUMBERS)
+
 
         # ─── Build the signal ─────────────────────────────
         signal = build_signal(
@@ -69,6 +102,7 @@ def simulate_rsu(rsu: dict):
             speed=speed,
             vehicle_count=vehicle_count,
             direction=direction,
+            plate_number=plate_number,
         )
 
         # ─── Send the signal to the server ────────────────
