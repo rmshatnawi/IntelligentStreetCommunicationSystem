@@ -19,7 +19,7 @@ SERVER_URL = "http://localhost:8000"
 
 # ─── SIMULATION SETTINGS ────────────────────────────────────
 # How often each RSU sends a signal (in seconds)
-SIGNAL_INTERVAL = 5       # send a signal every 5 seconds
+SIGNAL_INTERVAL = 20       # send a signal every 20 seconds
 
 # How many signals to send before stopping (None = run forever)
 MAX_SIGNALS = None
@@ -35,20 +35,45 @@ MAX_SIGNALS = None
 RSUS = [
     {
         "rsu_id":  "RSU_01",
-        "segment": "street1 St",
-        "direction": "Northbound"
+        "segment": "Petra St.",
+        "direction": "Northbound",
+        "lat": 32.49881838862495,
+        "lng": 35.98445671317814
     },
     {
         "rsu_id":  "RSU_02",
-        "segment": "street2 St",
-        "direction": "Southbound"
+        "segment": "Petra St.",
+        "direction": "Southbound",
+        "lat": 32.50376051952631,
+        "lng": 35.933664952564776
     },
     {
         "rsu_id":  "RSU_03",
-        "segment": "street3 St",
-        "direction": "Eastbound"
+        "segment": "Petra St.",
+        "direction": "Eastbound",
+        "lat": 32.523566536629296,
+        "lng": 35.90131674696526
     },
 ]
+
+# class Rsu {
+#   final String id;
+#   final String segment;
+#   final double lat;
+#   final double lng;
+#   const Rsu(this.id, this.segment, this.lat, this.lng);
+
+#   LatLng get position => LatLng(lat, lng);
+# }
+
+# const List<Rsu> kRsus = [
+#   // Road A — 3 RSUs on the same segment.
+#   Rsu('RSU_01', 'Petra St.', 32.49881838862495, 35.98445671317814),
+#   Rsu('RSU_02', 'Petra St.', 32.50376051952631, 35.933664952564776),
+#   Rsu('RSU_03', 'Petra St.', 32.523566536629296, 35.90131674696526),
+
+#   //Rsu('RSU_04', 'Petra St.', 32.53802806187248, 35.8810722338297),
+# ];
 
 
 # ─── SPEED SIMULATION RANGES ────────────────────────────────

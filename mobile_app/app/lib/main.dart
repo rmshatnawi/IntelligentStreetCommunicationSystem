@@ -1,6 +1,7 @@
 import 'package:app/app_theme.dart';
 import 'package:app/pages/Registeration.dart';
 import 'package:app/pages/home_page.dart';
+import 'package:app/pages/map_page.dart';
 import 'package:app/pages/signin_page.dart';
 import 'package:app/pages/welcome_page.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +31,7 @@ class MyApp extends StatelessWidget {
         SignInPage().routeName: (context) => const SignInPage(),
         RegisterationPage().routeName: (context) => const RegisterationPage(),
         HomePage().routeName: (context) => const HomePage(),
+        MapPage().routeName: (context) => const MapPage(),
       },
     );
   }

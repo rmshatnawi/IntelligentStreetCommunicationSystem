@@ -13,7 +13,7 @@
 # ============================================================
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 # ─── build_signal() ─────────────────────────────────────────
@@ -28,22 +28,19 @@ from datetime import datetime
 #
 # Returns:
 #   A dictionary matching the server's expected signal structure
-def build_signal(
-    rsu_id:        str,
-    segment:       str,
-    speed:         float,
-    vehicle_count: int,
-    direction:     str = "Unknown",
-    plate_number:  str = "Unknown"
-) -> dict:
 
+def build_signal(rsu_id, segment, speed, vehicle_count,
+                 direction="Unknown", plate_number="Unknown",
+                 lat=None, lng=None) -> dict:
     return {
-        "event_id":      str(uuid.uuid4()),         # unique ID for every signal
+        "event_id":      str(uuid.uuid4()),
         "rsu_id":        rsu_id,
         "segment":       segment,
-        "timestamp":     datetime.utcnow().isoformat(),
+        "timestamp":     datetime.now(UTC).isoformat(),
         "speed":         speed,
         "direction":     direction,
         "vehicle_count": vehicle_count,
         "plate_number":  plate_number,
+        "lat":           lat,
+        "lng":           lng,
     }

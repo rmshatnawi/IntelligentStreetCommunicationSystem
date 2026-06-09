@@ -50,7 +50,8 @@ class RSUSignal(BaseModel):
     timestamp: Optional[datetime] = Field(None,      description="Time of detection from RSU")
     direction: Optional[str]      = Field("Unknown", description="Direction of travel")
     plate_number: Optional[str]   = Field(None,      description="Detected vehicle plate number")
-
+    lat: Optional[float] = Field(None, description="RSU latitude")
+    lng: Optional[float] = Field(None, description="RSU longitude")
 # ─── SignalInDB ──────────────────────────────────────────────
 # Extends RSUSignal with the server-side received_at timestamp.
 # This is what gets saved to Firestore.
@@ -77,6 +78,8 @@ def to_dict(signal: SignalInDB) -> dict:
         "vehicle_count": signal.vehicle_count,
         "plate_number":  signal.plate_number,
         "received_at":   signal.received_at.isoformat(),
+        "lat":           signal.lat,
+        "lng":           signal.lng,
     }
 
 

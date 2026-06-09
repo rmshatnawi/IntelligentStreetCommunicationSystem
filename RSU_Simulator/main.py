@@ -75,6 +75,8 @@ def simulate_rsu(rsu: dict):
     rsu_id    = rsu["rsu_id"]
     segment   = rsu["segment"]
     direction = rsu["direction"]
+    lat = rsu["lat"]
+    lng = rsu["lng"]
  
     print(f"[START] {rsu_id} is now active on segment: {segment}")
 
@@ -103,6 +105,8 @@ def simulate_rsu(rsu: dict):
             vehicle_count=vehicle_count,
             direction=direction,
             plate_number=plate_number,
+            lat=lat,
+            lng=lng
         )
 
         # ─── Send the signal to the server ────────────────

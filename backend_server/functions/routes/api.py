@@ -21,8 +21,73 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from config import SIGNALS_COLLECTION, ALERTS_COLLECTION
 from core.auth import require_driver
 from models.user_model import AuthenticatedUser
+from routes.analyze import determine_traffic_status
+from collections import defaultdict
+
 
 router = APIRouter()
+
+
+# Server-side Directions key (NOT the Android key).
+DIRECTIONS_API_KEY = "AIzaSyCvPDTWxqxfc8DGw4j0k67N0RQFQ1Qx-E4"
+
+# Road shapes never change, so we fetch each one once and reuse it.
+_path_cache: dict = {}
+
+def _decode_polyline(encoded: str):
+    # Turns Google's compressed shape string into a list of points.
+    points, index, lat, lng = [], 0, 0, 0
+    while index < len(encoded):
+        for is_lat in (True, False):
+            shift = result = 0
+            while True:
+                b = ord(encoded[index]) - 63
+                index += 1
+                result |= (b & 0x1f) << shift
+                shift += 5
+                if b < 0x20:
+                    break
+            delta = ~(result >> 1) if (result & 1) else (result >> 1)
+            if is_lat:
+                lat += delta
+            else:
+                lng += delta
+        points.append({"lat": lat / 1e5, "lng": lng / 1e5})
+    return points
+
+def _road_path(segment: str, pts: list):
+    # Returns the road-following shape for a segment, cached.
+    if segment in _path_cache:
+        return _path_cache[segment]
+
+    straight = [{"lat": p["lat"], "lng": p["lng"]} for p in pts]
+    if len(pts) < 2:
+        return straight
+
+    ordered = sorted(pts, key=lambda p: p["lng"])
+    params = {
+        "origin": f'{ordered[0]["lat"]},{ordered[0]["lng"]}',
+        "destination": f'{ordered[-1]["lat"]},{ordered[-1]["lng"]}',
+        "key": DIRECTIONS_API_KEY,
+    }
+    mid = ordered[1:-1]
+    if mid:
+        params["waypoints"] = "|".join(f'{w["lat"]},{w["lng"]}' for w in mid)
+
+    try:
+        r = requests.get(
+            "https://maps.googleapis.com/maps/api/directions/json",
+            params=params, timeout=6,
+        )
+        data = r.json()
+        if data.get("status") == "OK":
+            path = _decode_polyline(data["routes"][0]["overview_polyline"]["points"])
+            _path_cache[segment] = path
+            return path
+        print(f"[DIRECTIONS] {segment}: {data.get('status')} {data.get('error_message','')}")
+    except Exception as e:
+        print(f"[DIRECTIONS] {segment}: {e}")
+    return straight  # fall back to a straight line on any failure
 
 
 # ─── GET /signals ────────────────────────────────────────────
@@ -35,7 +100,7 @@ router = APIRouter()
 @router.get("/signals")
 async def get_signals(
     request: Request,
-    user: AuthenticatedUser = Depends(require_driver),
+    #user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
         db = request.state.db
@@ -71,7 +136,7 @@ async def get_signals(
 async def get_signals_by_segment(
     segment: str,
     request: Request,
-    user: AuthenticatedUser = Depends(require_driver),
+    #user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
         db = request.state.db
@@ -117,7 +182,7 @@ async def get_signals_by_segment(
 @router.get("/alerts")
 async def get_alerts(
     request: Request,
-    user: AuthenticatedUser = Depends(require_driver),
+    #user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
         db = request.state.db
@@ -153,7 +218,7 @@ async def get_alerts(
 async def get_alerts_by_segment(
     segment: str,
     request: Request,
-    user: AuthenticatedUser = Depends(require_driver),
+    #user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
         db = request.state.db
@@ -187,3 +252,44 @@ async def get_alerts_by_segment(
     except Exception as e:
         print(f"[ERROR] Failed to fetch alerts for {segment}: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch alerts")
+    
+#new route to get segments and their traffic status
+@router.get("/state")
+async def get_state(
+    request: Request,
+    #user: AuthenticatedUser = Depends(require_driver),
+):
+    db = request.state.db
+    docs = (
+        db.collection(SIGNALS_COLLECTION)
+        .order_by("received_at", direction="DESCENDING")
+        .limit(40)
+        .stream()
+    )
+    signals = [d.to_dict() for d in docs]
+
+    speeds = defaultdict(list)
+    points = defaultdict(dict)   # segment -> {rsu_id: point}
+    for s in signals:
+        seg = s.get("segment")
+        if seg is None:
+            continue
+        if s.get("speed") is not None:
+            speeds[seg].append(s["speed"])
+        rid = s.get("rsu_id")
+        if rid and rid not in points[seg] and s.get("lat") is not None:
+            points[seg][rid] = {"rsu_id": rid, "lat": s["lat"], "lng": s["lng"]}
+
+    segments = []
+    for seg, sp in speeds.items():
+        avg = sum(sp) / len(sp)
+        rsus = list(points[seg].values())
+        segments.append({
+            "segment":   seg,
+            "status":    determine_traffic_status(avg),
+            "avg_speed": round(avg, 1),
+            "rsus":      rsus,
+            "path":      _road_path(seg, rsus),
+        })
+
+    return {"success": True, "segments": segments}
