@@ -44,10 +44,9 @@ async def ingest_signal(signal: RSUSignal, request: Request):
         # STEP 4: Vehicle tracking + stolen vehicle detection
         process_vehicle_tracking(signal_in_db, request.state.db)
 
-        # STEP 5: Traffic summaries + alerts
-        generate_summaries(request.state.db)
+    
 
-        # STEP 6: Return success response
+        # STEP 5: Return success response
         return {
             "success": True,
             "message": "Signal received, saved, and processed",
