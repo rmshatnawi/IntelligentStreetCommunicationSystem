@@ -2,40 +2,41 @@
 # Project:  Intelligent Street Communication System (ISCS)
 # File:     routes/api.py
 # Author:   Raghad Shatnawi
-# Last Modified: 18 April 2026
+# Last Modified: April 2026
+# Author:   Batool Alkhateeb
+# Last Modified: June 2026
 # Purpose:  Provides endpoints for the Flutter mobile app.
 #           Flutter calls these to display live traffic data,
 #           road segment statuses, and active alerts.
 #
 #           All routes require authentication.
 #           Role access per route:
-#             /signals          — driver, public_safety, admin
-#             /signals/{segment}— driver, public_safety, admin
-#             /alerts           — driver, public_safety, admin
-#             /alerts/{segment} — driver, public_safety, admin
+#             /signals            — driver, public_safety, admin
+#             /signals/{segment}  — driver, public_safety, admin
+#             /alerts             — driver, public_safety, admin
+#             /alerts/{segment}   — driver, public_safety, admin
+#             /state              — driver, public_safety, admin
 # ============================================================
 
+import requests                                       # ← fix: was missing
 from fastapi import APIRouter, HTTPException, Request, Depends
 from google.cloud.firestore_v1.base_query import FieldFilter
+from collections import defaultdict
 
-from config import SIGNALS_COLLECTION, ALERTS_COLLECTION
+from config import SIGNALS_COLLECTION, ALERTS_COLLECTION, DIRECTIONS_API_KEY  # ← key from config
 from core.auth import require_driver
 from models.user_model import AuthenticatedUser
 from routes.analyze import determine_traffic_status
-from collections import defaultdict
 
 
 router = APIRouter()
 
-
-# Server-side Directions key (NOT the Android key).
-DIRECTIONS_API_KEY = "AIzaSyCvPDTWxqxfc8DGw4j0k67N0RQFQ1Qx-E4"
-
 # Road shapes never change, so we fetch each one once and reuse it.
 _path_cache: dict = {}
 
+
 def _decode_polyline(encoded: str):
-    # Turns Google's compressed shape string into a list of points.
+    """Decode a Google encoded polyline into a list of {lat, lng} dicts."""
     points, index, lat, lng = [], 0, 0, 0
     while index < len(encoded):
         for is_lat in (True, False):
@@ -55,8 +56,9 @@ def _decode_polyline(encoded: str):
         points.append({"lat": lat / 1e5, "lng": lng / 1e5})
     return points
 
+
 def _road_path(segment: str, pts: list):
-    # Returns the road-following shape for a segment, cached.
+    """Return the road-following polyline for a segment, cached after first fetch."""
     if segment in _path_cache:
         return _path_cache[segment]
 
@@ -66,9 +68,9 @@ def _road_path(segment: str, pts: list):
 
     ordered = sorted(pts, key=lambda p: p["lng"])
     params = {
-        "origin": f'{ordered[0]["lat"]},{ordered[0]["lng"]}',
+        "origin":      f'{ordered[0]["lat"]},{ordered[0]["lng"]}',
         "destination": f'{ordered[-1]["lat"]},{ordered[-1]["lng"]}',
-        "key": DIRECTIONS_API_KEY,
+        "key":         DIRECTIONS_API_KEY,
     }
     mid = ordered[1:-1]
     if mid:
@@ -84,41 +86,28 @@ def _road_path(segment: str, pts: list):
             path = _decode_polyline(data["routes"][0]["overview_polyline"]["points"])
             _path_cache[segment] = path
             return path
-        print(f"[DIRECTIONS] {segment}: {data.get('status')} {data.get('error_message','')}")
+        print(f"[DIRECTIONS] {segment}: {data.get('status')} {data.get('error_message', '')}")
     except Exception as e:
         print(f"[DIRECTIONS] {segment}: {e}")
-    return straight  # fall back to a straight line on any failure
+
+    return straight   # fall back to straight line on any failure
 
 
 # ─── GET /signals ────────────────────────────────────────────
-# Returns the latest signals across all segments.
-# Flutter uses this to display a live feed of RSU activity.
-#
-# Auth: driver, public_safety, admin
-# URL:  GET http://<server-ip>:8000/signals
-
 @router.get("/signals")
 async def get_signals(
     request: Request,
-    #user: AuthenticatedUser = Depends(require_driver),
+    user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
-        db = request.state.db
-
         docs = (
-            db.collection(SIGNALS_COLLECTION)
+            request.state.db.collection(SIGNALS_COLLECTION)
             .order_by("received_at", direction="DESCENDING")
             .limit(20)
             .stream()
         )
-
         signals = [doc.to_dict() for doc in docs]
-
-        return {
-            "success": True,
-            "count":   len(signals),
-            "signals": signals,
-        }
+        return {"success": True, "count": len(signals), "signals": signals}
 
     except Exception as e:
         print(f"[ERROR] Failed to fetch signals: {e}")
@@ -126,29 +115,20 @@ async def get_signals(
 
 
 # ─── GET /signals/{segment} ──────────────────────────────────
-# Returns the latest signals for a specific road segment.
-# Flutter uses this to show details when a driver taps a segment.
-#
-# Auth: driver, public_safety, admin
-# URL:  GET http://<server-ip>:8000/signals/{segment}
-
 @router.get("/signals/{segment}")
 async def get_signals_by_segment(
     segment: str,
     request: Request,
-    #user: AuthenticatedUser = Depends(require_driver),
+    user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
-        db = request.state.db
-
         docs = (
-            db.collection(SIGNALS_COLLECTION)
+            request.state.db.collection(SIGNALS_COLLECTION)
             .where(filter=FieldFilter("segment", "==", segment))
             .order_by("received_at", direction="DESCENDING")
             .limit(10)
             .stream()
         )
-
         signals = [doc.to_dict() for doc in docs]
 
         if not signals:
@@ -156,51 +136,30 @@ async def get_signals_by_segment(
                 status_code=404,
                 detail=f"No signals found for segment: {segment}"
             )
-
-        return {
-            "success": True,
-            "segment": segment,
-            "count":   len(signals),
-            "signals": signals,
-        }
+        return {"success": True, "segment": segment, "count": len(signals), "signals": signals}
 
     except HTTPException:
         raise
-
     except Exception as e:
         print(f"[ERROR] Failed to fetch signals for {segment}: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch signals")
 
 
 # ─── GET /alerts ─────────────────────────────────────────────
-# Returns all active traffic alerts.
-# Flutter uses this to show warnings to drivers on the map.
-#
-# Auth: driver, public_safety, admin
-# URL:  GET http://<server-ip>:8000/alerts
-
 @router.get("/alerts")
 async def get_alerts(
     request: Request,
-    #user: AuthenticatedUser = Depends(require_driver),
+    user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
-        db = request.state.db
-
         docs = (
-            db.collection(ALERTS_COLLECTION)
+            request.state.db.collection(ALERTS_COLLECTION)
             .order_by("generated_at", direction="DESCENDING")
             .limit(10)
             .stream()
         )
-
         alerts = [doc.to_dict() for doc in docs]
-
-        return {
-            "success": True,
-            "count":   len(alerts),
-            "alerts":  alerts,
-        }
+        return {"success": True, "count": len(alerts), "alerts": alerts}
 
     except Exception as e:
         print(f"[ERROR] Failed to fetch alerts: {e}")
@@ -208,29 +167,20 @@ async def get_alerts(
 
 
 # ─── GET /alerts/{segment} ───────────────────────────────────
-# Returns alerts for a specific road segment.
-# Flutter uses this to show segment-specific warnings.
-#
-# Auth: driver, public_safety, admin
-# URL:  GET http://<server-ip>:8000/alerts/{segment}
-
 @router.get("/alerts/{segment}")
 async def get_alerts_by_segment(
     segment: str,
     request: Request,
-    #user: AuthenticatedUser = Depends(require_driver),
+    user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
-        db = request.state.db
-
         docs = (
-            db.collection(ALERTS_COLLECTION)
+            request.state.db.collection(ALERTS_COLLECTION)
             .where(filter=FieldFilter("segment", "==", segment))
             .order_by("generated_at", direction="DESCENDING")
             .limit(5)
             .stream()
         )
-
         alerts = [doc.to_dict() for doc in docs]
 
         if not alerts:
@@ -238,26 +188,25 @@ async def get_alerts_by_segment(
                 status_code=404,
                 detail=f"No alerts found for segment: {segment}"
             )
-
-        return {
-            "success": True,
-            "segment": segment,
-            "count":   len(alerts),
-            "alerts":  alerts,
-        }
+        return {"success": True, "segment": segment, "count": len(alerts), "alerts": alerts}
 
     except HTTPException:
         raise
-
     except Exception as e:
         print(f"[ERROR] Failed to fetch alerts for {segment}: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch alerts")
-    
-#new route to get segments and their traffic status
+
+
+# ─── GET /state ──────────────────────────────────────────────
+# Returns the current traffic state for every segment.
+# Flutter uses this to colour-code roads on the map.
+# Privacy: returns only aggregated summaries (no raw event data,
+# no RSU identifiers exposed beyond what is needed for map pins).
+
 @router.get("/state")
 async def get_state(
     request: Request,
-    #user: AuthenticatedUser = Depends(require_driver),
+    user: AuthenticatedUser = Depends(require_driver),
 ):
     db = request.state.db
     docs = (
@@ -282,7 +231,7 @@ async def get_state(
 
     segments = []
     for seg, sp in speeds.items():
-        avg = sum(sp) / len(sp)
+        avg  = sum(sp) / len(sp)
         rsus = list(points[seg].values())
         segments.append({
             "segment":   seg,
