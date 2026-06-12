@@ -2,10 +2,9 @@
 // Project:  Intelligent Street Communication System (ISCS)
 // File:     lib/pages/map_page.dart
 // Purpose:  Driver map screen.
-//           Polls GET /state. The server is the source of truth:
-//           it returns each segment's traffic status and the RSU
-//           points on it. The app draws a marker per RSU and a
-//           colored line per segment.
+//           Polls GET /state. Each RSU has its own status, and the
+//           road between every pair of consecutive RSUs is drawn as
+//           a separate road-following line colored by local traffic.
 //
 // Color:  free=green  moderate=amber  congested=orange  severe=red
 // ============================================================
@@ -21,17 +20,29 @@ import 'package:firebase_auth/firebase_auth.dart';
 // -- WIRING POINT 1: SERVER URL ------------------------------
 const String kBaseUrl = 'http://192.168.1.21:8000';
 
-const Duration kPollInterval = Duration(seconds: 30);
+const Duration kPollInterval = Duration(seconds: 5);
 
-// Fallback map center used before any signal arrives .
-const LatLng kFallbackCenter = LatLng(32.50376051952631, 35.933664952564776);
+// Fallback map center used before any signal arrives.
+const LatLng kFallbackCenter = LatLng(32.0728, 36.0876);
+
+class _Rsu {
+  final String id;
+  final LatLng pos;
+  final String status;
+  const _Rsu(this.id, this.pos, this.status);
+}
+
+class _Edge {
+  final String status;
+  final List<LatLng> path;
+  const _Edge(this.status, this.path);
+}
 
 class _Seg {
   final String segment;
-  final String status; // free | moderate | congested | severe
-  final List<LatLng> points; // RSU positions (markers)
-  final List<LatLng> path; // road-following shape from the server
-  const _Seg(this.segment, this.status, this.points, this.path);
+  final List<_Rsu> rsus;
+  final List<_Edge> edges;
+  const _Seg(this.segment, this.rsus, this.edges);
 }
 
 class MapPage extends StatefulWidget {
@@ -68,6 +79,16 @@ class _MapPageState extends State<MapPage> {
     return FirebaseAuth.instance.currentUser?.getIdToken();
   }
 
+  List<LatLng> _parsePath(dynamic raw) {
+    final out = <LatLng>[];
+    for (final p in (raw as List?) ?? const []) {
+      final lat = (p['lat'] as num?)?.toDouble();
+      final lng = (p['lng'] as num?)?.toDouble();
+      if (lat != null && lng != null) out.add(LatLng(lat, lng));
+    }
+    return out;
+  }
+
   Future<void> _refresh() async {
     try {
       final token = await _idToken();
@@ -92,26 +113,29 @@ class _MapPageState extends State<MapPage> {
       final parsed = <_Seg>[];
       for (final s in list) {
         final seg = s['segment']?.toString() ?? '';
-        final status = s['status']?.toString() ?? 'free';
 
-        final rsus = (s['rsus'] as List?) ?? const [];
-        final pts = <LatLng>[];
-        for (final r in rsus) {
+        final rsus = <_Rsu>[];
+        for (final r in (s['rsus'] as List?) ?? const []) {
           final lat = (r['lat'] as num?)?.toDouble();
           final lng = (r['lng'] as num?)?.toDouble();
-          if (lat != null && lng != null) pts.add(LatLng(lat, lng));
-        }
-        pts.sort((a, b) => a.longitude.compareTo(b.longitude));
-
-        final rawPath = (s['path'] as List?) ?? const [];
-        final path = <LatLng>[];
-        for (final p in rawPath) {
-          final lat = (p['lat'] as num?)?.toDouble();
-          final lng = (p['lng'] as num?)?.toDouble();
-          if (lat != null && lng != null) path.add(LatLng(lat, lng));
+          if (lat == null || lng == null) continue;
+          rsus.add(
+            _Rsu(
+              r['rsu_id']?.toString() ?? '',
+              LatLng(lat, lng),
+              r['status']?.toString() ?? 'free',
+            ),
+          );
         }
 
-        parsed.add(_Seg(seg, status, pts, path));
+        final edges = <_Edge>[];
+        for (final e in (s['edges'] as List?) ?? const []) {
+          edges.add(
+            _Edge(e['status']?.toString() ?? 'free', _parsePath(e['path'])),
+          );
+        }
+
+        parsed.add(_Seg(seg, rsus, edges));
       }
 
       if (!mounted) return;
@@ -134,7 +158,7 @@ class _MapPageState extends State<MapPage> {
       case 'moderate':
         return BitmapDescriptor.hueYellow;
       default:
-        return BitmapDescriptor.hueGreen; // free
+        return BitmapDescriptor.hueGreen;
     }
   }
 
@@ -147,7 +171,7 @@ class _MapPageState extends State<MapPage> {
       case 'moderate':
         return Colors.amber;
       default:
-        return Colors.green; // free
+        return Colors.green;
     }
   }
 
@@ -167,16 +191,15 @@ class _MapPageState extends State<MapPage> {
   Set<Marker> get _markers {
     final m = <Marker>{};
     for (final seg in _segments) {
-      for (var i = 0; i < seg.points.length; i++) {
-        final p = seg.points[i];
+      for (final rsu in seg.rsus) {
         m.add(
           Marker(
-            markerId: MarkerId('${seg.segment}_$i'),
-            position: p,
-            icon: BitmapDescriptor.defaultMarkerWithHue(_hue(seg.status)),
+            markerId: MarkerId(rsu.id),
+            position: rsu.pos,
+            icon: BitmapDescriptor.defaultMarkerWithHue(_hue(rsu.status)),
             infoWindow: InfoWindow(
-              title: seg.segment,
-              snippet: _label(seg.status),
+              title: '${rsu.id} - ${seg.segment}',
+              snippet: _label(rsu.status),
             ),
           ),
         );
@@ -188,24 +211,24 @@ class _MapPageState extends State<MapPage> {
   Set<Polyline> get _lines {
     final l = <Polyline>{};
     for (final seg in _segments) {
-      // Prefer the server's road-following shape; fall back to the two
-      // RSU points (straight line) if the server returned no path.
-      final shape = seg.path.length >= 2 ? seg.path : seg.points;
-      if (shape.length < 2) continue;
-      l.add(
-        Polyline(
-          polylineId: PolylineId(seg.segment),
-          points: shape,
-          color: _color(seg.status),
-          width: 6,
-        ),
-      );
+      for (var i = 0; i < seg.edges.length; i++) {
+        final edge = seg.edges[i];
+        if (edge.path.length < 2) continue;
+        l.add(
+          Polyline(
+            polylineId: PolylineId('${seg.segment}_$i'),
+            points: edge.path,
+            color: _color(edge.status),
+            width: 6,
+          ),
+        );
+      }
     }
     return l;
   }
 
   LatLng get _center {
-    final all = _segments.expand((s) => s.points).toList();
+    final all = _segments.expand((s) => s.rsus).map((r) => r.pos).toList();
     if (all.isEmpty) return kFallbackCenter;
     final lat = all.map((p) => p.latitude).reduce((a, b) => a + b) / all.length;
     final lng =
@@ -220,7 +243,7 @@ class _MapPageState extends State<MapPage> {
       body: Stack(
         children: [
           GoogleMap(
-            initialCameraPosition: CameraPosition(target: _center, zoom: 14.5),
+            initialCameraPosition: CameraPosition(target: _center, zoom: 13.5),
             markers: _markers,
             polylines: _lines,
             myLocationButtonEnabled: false,

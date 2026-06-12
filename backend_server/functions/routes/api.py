@@ -2,18 +2,20 @@
 # Project:  Intelligent Street Communication System (ISCS)
 # File:     routes/api.py
 # Author:   Raghad Shatnawi
-# Last Modified: 18 April 2026
+# Last Modified: June 2026
 # Purpose:  Provides endpoints for the Flutter mobile app.
 #           Flutter calls these to display live traffic data,
 #           road segment statuses, and active alerts.
 #
-#           All routes require authentication.
 #           Role access per route:
 #             /signals          — driver, public_safety, admin
 #             /signals/{segment}— driver, public_safety, admin
 #             /alerts           — driver, public_safety, admin
 #             /alerts/{segment} — driver, public_safety, admin
+#             /state            — open (re-enable auth before deploy)
 # ============================================================
+
+import requests as http_requests
 
 from fastapi import APIRouter, HTTPException, Request, Depends
 from google.cloud.firestore_v1.base_query import FieldFilter
@@ -31,8 +33,9 @@ router = APIRouter()
 # Server-side Directions key (NOT the Android key).
 DIRECTIONS_API_KEY = "AIzaSyCvPDTWxqxfc8DGw4j0k67N0RQFQ1Qx-E4"
 
-# Road shapes never change, so we fetch each one once and reuse it.
-_path_cache: dict = {}
+# Road shapes never change, so each piece is fetched once and reused.
+_edge_cache: dict = {}
+
 
 def _decode_polyline(encoded: str):
     # Turns Google's compressed shape string into a list of points.
@@ -55,48 +58,50 @@ def _decode_polyline(encoded: str):
         points.append({"lat": lat / 1e5, "lng": lng / 1e5})
     return points
 
-def _road_path(segment: str, pts: list):
-    # Returns the road-following shape for a segment, cached.
-    if segment in _path_cache:
-        return _path_cache[segment]
 
-    straight = [{"lat": p["lat"], "lng": p["lng"]} for p in pts]
-    if len(pts) < 2:
-        return straight
+def _order_rsus(rsus: list):
+    # Order the RSUs along the road's dominant axis (E-W or N-S).
+    if len(rsus) <= 2:
+        return rsus
+    lat_span = max(r["lat"] for r in rsus) - min(r["lat"] for r in rsus)
+    lng_span = max(r["lng"] for r in rsus) - min(r["lng"] for r in rsus)
+    axis = "lat" if lat_span > lng_span else "lng"
+    return sorted(rsus, key=lambda r: r[axis])
 
-    ordered = sorted(pts, key=lambda p: p["lng"])
+
+def _edge_path(a: dict, b: dict):
+    # Road-following shape between two consecutive RSUs, cached.
+    key = f'{a["rsu_id"]}->{b["rsu_id"]}'
+    if key in _edge_cache:
+        return _edge_cache[key]
+
+    straight = [{"lat": a["lat"], "lng": a["lng"]},
+                {"lat": b["lat"], "lng": b["lng"]}]
+
     params = {
-        "origin": f'{ordered[0]["lat"]},{ordered[0]["lng"]}',
-        "destination": f'{ordered[-1]["lat"]},{ordered[-1]["lng"]}',
-        "key": DIRECTIONS_API_KEY,
+        "origin":      f'{a["lat"]},{a["lng"]}',
+        "destination": f'{b["lat"]},{b["lng"]}',
+        "key":         DIRECTIONS_API_KEY,
     }
-    mid = ordered[1:-1]
-    if mid:
-        params["waypoints"] = "|".join(f'{w["lat"]},{w["lng"]}' for w in mid)
 
     try:
-        r = requests.get(
+        r = http_requests.get(
             "https://maps.googleapis.com/maps/api/directions/json",
             params=params, timeout=6,
         )
         data = r.json()
         if data.get("status") == "OK":
             path = _decode_polyline(data["routes"][0]["overview_polyline"]["points"])
-            _path_cache[segment] = path
+            _edge_cache[key] = path
             return path
-        print(f"[DIRECTIONS] {segment}: {data.get('status')} {data.get('error_message','')}")
+        print(f"[DIR] {key} status={data.get('status')} {data.get('error_message','')}")
     except Exception as e:
-        print(f"[DIRECTIONS] {segment}: {e}")
-    return straight  # fall back to a straight line on any failure
+        print(f"[DIR] {key} EXCEPTION {e!r}")
+
+    return straight
 
 
 # ─── GET /signals ────────────────────────────────────────────
-# Returns the latest signals across all segments.
-# Flutter uses this to display a live feed of RSU activity.
-#
-# Auth: driver, public_safety, admin
-# URL:  GET http://<server-ip>:8000/signals
-
 @router.get("/signals")
 async def get_signals(
     request: Request,
@@ -126,12 +131,6 @@ async def get_signals(
 
 
 # ─── GET /signals/{segment} ──────────────────────────────────
-# Returns the latest signals for a specific road segment.
-# Flutter uses this to show details when a driver taps a segment.
-#
-# Auth: driver, public_safety, admin
-# URL:  GET http://<server-ip>:8000/signals/{segment}
-
 @router.get("/signals/{segment}")
 async def get_signals_by_segment(
     segment: str,
@@ -173,12 +172,6 @@ async def get_signals_by_segment(
 
 
 # ─── GET /alerts ─────────────────────────────────────────────
-# Returns all active traffic alerts.
-# Flutter uses this to show warnings to drivers on the map.
-#
-# Auth: driver, public_safety, admin
-# URL:  GET http://<server-ip>:8000/alerts
-
 @router.get("/alerts")
 async def get_alerts(
     request: Request,
@@ -208,12 +201,6 @@ async def get_alerts(
 
 
 # ─── GET /alerts/{segment} ───────────────────────────────────
-# Returns alerts for a specific road segment.
-# Flutter uses this to show segment-specific warnings.
-#
-# Auth: driver, public_safety, admin
-# URL:  GET http://<server-ip>:8000/alerts/{segment}
-
 @router.get("/alerts/{segment}")
 async def get_alerts_by_segment(
     segment: str,
@@ -252,8 +239,11 @@ async def get_alerts_by_segment(
     except Exception as e:
         print(f"[ERROR] Failed to fetch alerts for {segment}: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch alerts")
-    
-#new route to get segments and their traffic status
+
+
+# ─── GET /state ──────────────────────────────────────────────
+# Per-RSU status + a colored road piece between each pair of RSUs.
+# Flutter draws one line per piece and colors each marker by its RSU.
 @router.get("/state")
 async def get_state(
     request: Request,
@@ -263,33 +253,57 @@ async def get_state(
     docs = (
         db.collection(SIGNALS_COLLECTION)
         .order_by("received_at", direction="DESCENDING")
-        .limit(40)
+        .limit(2000)
         .stream()
     )
     signals = [d.to_dict() for d in docs]
 
-    speeds = defaultdict(list)
-    points = defaultdict(dict)   # segment -> {rsu_id: point}
+    # Average speed and position per RSU.
+    speeds_by_rsu = defaultdict(list)
+    meta = {}  # rsu_id -> {rsu_id, lat, lng, segment}
     for s in signals:
         seg = s.get("segment")
-        if seg is None:
+        rid = s.get("rsu_id")
+        if seg is None or rid is None:
             continue
         if s.get("speed") is not None:
-            speeds[seg].append(s["speed"])
-        rid = s.get("rsu_id")
-        if rid and rid not in points[seg] and s.get("lat") is not None:
-            points[seg][rid] = {"rsu_id": rid, "lat": s["lat"], "lng": s["lng"]}
+            speeds_by_rsu[rid].append(s["speed"])
+        if rid not in meta and s.get("lat") is not None:
+            meta[rid] = {
+                "rsu_id":  rid,
+                "lat":     s["lat"],
+                "lng":     s["lng"],
+                "segment": seg,
+            }
 
+    # Group RSUs by segment, with each RSU's own status.
+    by_segment = defaultdict(list)
+    for rid, m in meta.items():
+        sp = speeds_by_rsu.get(rid, [])
+        avg = sum(sp) / len(sp) if sp else None
+        entry = dict(m)
+        entry["avg_speed"] = round(avg, 1) if avg is not None else None
+        entry["status"] = determine_traffic_status(avg) if avg is not None else "free"
+        by_segment[m["segment"]].append(entry)
+
+    # Build one colored edge between each consecutive pair of RSUs.
     segments = []
-    for seg, sp in speeds.items():
-        avg = sum(sp) / len(sp)
-        rsus = list(points[seg].values())
+    for seg, rsus in by_segment.items():
+        ordered = _order_rsus(rsus)
+        edges = []
+        for i in range(len(ordered) - 1):
+            a, b = ordered[i], ordered[i + 1]
+            vals = [v for v in (a["avg_speed"], b["avg_speed"]) if v is not None]
+            eavg = sum(vals) / len(vals) if vals else None
+            edges.append({
+                "status":    determine_traffic_status(eavg) if eavg is not None else "free",
+                "avg_speed": round(eavg, 1) if eavg is not None else None,
+                "path":      _edge_path(a, b),
+            })
         segments.append({
-            "segment":   seg,
-            "status":    determine_traffic_status(avg),
-            "avg_speed": round(avg, 1),
-            "rsus":      rsus,
-            "path":      _road_path(seg, rsus),
+            "segment": seg,
+            "rsus":    ordered,
+            "edges":   edges,
         })
 
     return {"success": True, "segments": segments}
