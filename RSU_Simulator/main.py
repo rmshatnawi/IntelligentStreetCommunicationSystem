@@ -353,9 +353,9 @@ _used_plates = set()
 
 def random_plate():
     while True:
-        letters = "".join(random.choices(string.ascii_uppercase, k=3))
-        digits = "".join(random.choices(string.digits, k=3))
-        plate = f"{letters}-{digits}"
+        prefix = "".join(random.choices(string.digits, k=2))   # 2 digits
+        number = "".join(random.choices(string.digits, k=5))   # 5 digits
+        plate = f"{prefix}-{number}"
         if plate not in _used_plates:
             _used_plates.add(plate)
             return plate

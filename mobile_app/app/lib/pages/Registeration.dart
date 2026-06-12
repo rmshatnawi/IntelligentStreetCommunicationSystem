@@ -1,3 +1,4 @@
+import 'package:app/pages/home_page.dart';
 import 'package:app/pages/map_page.dart';
 import 'package:app/widgets/custom_button.dart';
 import 'package:app/widgets/logo_and_title.dart';
@@ -117,7 +118,7 @@ class _RegisterationPageState extends State<RegisterationPage> {
                   email: email,
                   password: password,
                 );
-                Navigator.pushNamed(context, MapPage().routeName);
+                Navigator.pushReplacementNamed(context, HomePage().routeName);
               } catch (e) {
                 print(e);
               }

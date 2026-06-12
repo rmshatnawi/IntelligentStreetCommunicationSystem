@@ -15,7 +15,7 @@
 #               persistence check (k windows, alpha factor, m consecutive)
 # ============================================================
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
 from models.summary_model import SegmentTrafficSummary
@@ -38,6 +38,7 @@ from config import (
 )
 from services.alert import generate_alert
 from services.baseline_service import update_baseline, get_baseline
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 
 # ─── get_window_start() ──────────────────────────────────────
@@ -72,7 +73,7 @@ def classify_traffic(avg_speed: float, density_proxy: float) -> str:
 def _get_rolling_baseline(segment: str, db):
     docs = (
         db.collection(SEGMENTS_COLLECTION)
-        .where("segment", "==", segment)
+        .where(filter=FieldFilter("segment", "==", segment))
         .order_by("computed_at", direction="DESCENDING")
         .limit(BASELINE_WINDOW_K)
         .stream()
@@ -95,7 +96,7 @@ def _get_rolling_baseline(segment: str, db):
 def _get_persistence_count(segment: str, db) -> int:
     docs = (
         db.collection(SEGMENTS_COLLECTION)
-        .where("segment", "==", segment)
+        .where(filter=FieldFilter("segment", "==", segment))
         .order_by("computed_at", direction="DESCENDING")
         .limit(PERSISTENCE_M)
         .stream()
@@ -137,7 +138,7 @@ def build_summary(segment: str, signals: list) -> SegmentTrafficSummary:
         flow_rate=round(flow_rate, 2),
         density_proxy=round(density_proxy, 2),
         traffic_state=traffic_state,
-        computed_at=datetime.utcnow(),
+        computed_at=datetime.now(timezone.utc),
     )
 
 
@@ -146,15 +147,15 @@ def build_summary(segment: str, signals: list) -> SegmentTrafficSummary:
 # Processes only the last completed time window.
 
 def generate_summaries(db):
-    now          = datetime.utcnow()
+    now          = datetime.now(timezone.utc).isoformat()
     window_end   = get_window_start(now)
     window_start = window_end - timedelta(seconds=WINDOW_SECONDS)
 
     # ── Fetch signals in the completed window ────────────────
     docs = (
         db.collection(SIGNALS_COLLECTION)
-        .where("timestamp", ">=", window_start.isoformat())
-        .where("timestamp", "<",  window_end.isoformat())
+        .where(filter=FieldFilter("timestamp", ">=", window_start.isoformat()))
+        .where(filter=FieldFilter("timestamp", "<",  window_end.isoformat()))
         .stream()
     )
 

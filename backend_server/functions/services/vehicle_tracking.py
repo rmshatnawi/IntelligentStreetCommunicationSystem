@@ -7,7 +7,8 @@
 #           checks for stolen vehicles.
 # ============================================================
 
-from datetime import datetime
+from datetime import datetime, timezone
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 from config import (
     VEHICLE_TRACKING_COLLECTION,
@@ -32,7 +33,7 @@ def process_vehicle_tracking(signal, db):
     # -------------------------------------------------
     stolen_docs = (
         db.collection(STOLEN_VEHICLES_COLLECTION)
-        .where("plate_number", "==", signal.plate_number)
+        .where(filter=FieldFilter("plate_number", "==", signal.plate_number))
         .stream()
     )
 
@@ -62,7 +63,7 @@ def process_vehicle_tracking(signal, db):
             "alert_message": (
                 f"Stolen vehicle detected: {signal.plate_number}"
             ),
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
         db.collection(SECURITY_ALERTS_COLLECTION).add(alert_data)
@@ -79,7 +80,7 @@ def process_vehicle_tracking(signal, db):
         "speed": signal.speed,
         "status": status,
         "is_stolen": is_stolen,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
     db.collection(

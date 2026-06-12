@@ -1,3 +1,4 @@
+import 'package:app/pages/home_page.dart';
 import 'package:app/pages/map_page.dart';
 import 'package:app/widgets/custom_button.dart';
 import 'package:app/widgets/logo_and_title.dart';
@@ -67,7 +68,7 @@ class SignInPageState extends State<SignInPage> {
             CustomButton(
               buttonText: 'Sign In',
               onPressed: () {
-                Navigator.pushNamed(context, MapPage().routeName);
+                Navigator.pushReplacementNamed(context, HomePage().routeName);
               },
               textStyle: AppTheme.light.textTheme.titleMedium!,
               buttonColor: AppTheme.primary,

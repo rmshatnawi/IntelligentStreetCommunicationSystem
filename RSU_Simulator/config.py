@@ -306,7 +306,7 @@ SPAWN_INTERVAL_SECONDS = 20
 
 # Total vehicles to release. None = keep spawning forever
 # (stop with Ctrl+C).
-MAX_VEHICLES = None
+MAX_VEHICLES = 30
 
 # Each vehicle gets a random cruise speed in this range (km/h).
 VEHICLE_SPEED_MIN = 45.0
