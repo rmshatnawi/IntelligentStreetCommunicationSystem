@@ -2,43 +2,44 @@
 # Project:  Intelligent Street Communication System (ISCS)
 # File:     routes/api.py
 # Author:   Raghad Shatnawi
+# Last Modified: April 2026
+# Author:   Batool Alkhateeb
 # Last Modified: June 2026
 # Purpose:  Provides endpoints for the Flutter mobile app.
 #           Flutter calls these to display live traffic data,
 #           road segment statuses, and active alerts.
 #
 #           Role access per route:
-#             /signals          — driver, public_safety, admin
-#             /signals/{segment}— driver, public_safety, admin
-#             /alerts           — driver, public_safety, admin
-#             /alerts/{segment} — driver, public_safety, admin
-#             /state            — open (re-enable auth before deploy)
+#             /signals            — driver, public_safety, admin
+#             /signals/{segment}  — driver, public_safety, admin
+#             /alerts             — driver, public_safety, admin
+#             /alerts/{segment}   — driver, public_safety, admin
+#             /state              — driver, public_safety, admin
 # ============================================================
 
 import requests as http_requests
 
+import requests as http_requests
+
+import requests                                       # ← fix: was missing
 from fastapi import APIRouter, HTTPException, Request, Depends
 from google.cloud.firestore_v1.base_query import FieldFilter
+from collections import defaultdict
 
-from config import SIGNALS_COLLECTION, ALERTS_COLLECTION
+from config import SIGNALS_COLLECTION, ALERTS_COLLECTION, DIRECTIONS_API_KEY  # ← key from config
 from core.auth import require_driver
 from models.user_model import AuthenticatedUser
 from routes.analyze import determine_traffic_status
-from collections import defaultdict
 
 
 router = APIRouter()
-
-
-# Server-side Directions key (NOT the Android key).
-DIRECTIONS_API_KEY = "AIzaSyCvPDTWxqxfc8DGw4j0k67N0RQFQ1Qx-E4"
 
 # Road shapes never change, so each piece is fetched once and reused.
 _edge_cache: dict = {}
 
 
 def _decode_polyline(encoded: str):
-    # Turns Google's compressed shape string into a list of points.
+    """Decode a Google encoded polyline into a list of {lat, lng} dicts."""
     points, index, lat, lng = [], 0, 0, 0
     while index < len(encoded):
         for is_lat in (True, False):
@@ -105,25 +106,17 @@ def _edge_path(a: dict, b: dict):
 @router.get("/signals")
 async def get_signals(
     request: Request,
-    #user: AuthenticatedUser = Depends(require_driver),
+    user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
-        db = request.state.db
-
         docs = (
-            db.collection(SIGNALS_COLLECTION)
+            request.state.db.collection(SIGNALS_COLLECTION)
             .order_by("received_at", direction="DESCENDING")
             .limit(20)
             .stream()
         )
-
         signals = [doc.to_dict() for doc in docs]
-
-        return {
-            "success": True,
-            "count":   len(signals),
-            "signals": signals,
-        }
+        return {"success": True, "count": len(signals), "signals": signals}
 
     except Exception as e:
         print(f"[ERROR] Failed to fetch signals: {e}")
@@ -135,19 +128,16 @@ async def get_signals(
 async def get_signals_by_segment(
     segment: str,
     request: Request,
-    #user: AuthenticatedUser = Depends(require_driver),
+    user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
-        db = request.state.db
-
         docs = (
-            db.collection(SIGNALS_COLLECTION)
+            request.state.db.collection(SIGNALS_COLLECTION)
             .where(filter=FieldFilter("segment", "==", segment))
             .order_by("received_at", direction="DESCENDING")
             .limit(10)
             .stream()
         )
-
         signals = [doc.to_dict() for doc in docs]
 
         if not signals:
@@ -155,17 +145,10 @@ async def get_signals_by_segment(
                 status_code=404,
                 detail=f"No signals found for segment: {segment}"
             )
-
-        return {
-            "success": True,
-            "segment": segment,
-            "count":   len(signals),
-            "signals": signals,
-        }
+        return {"success": True, "segment": segment, "count": len(signals), "signals": signals}
 
     except HTTPException:
         raise
-
     except Exception as e:
         print(f"[ERROR] Failed to fetch signals for {segment}: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch signals")
@@ -175,25 +158,17 @@ async def get_signals_by_segment(
 @router.get("/alerts")
 async def get_alerts(
     request: Request,
-    #user: AuthenticatedUser = Depends(require_driver),
+    user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
-        db = request.state.db
-
         docs = (
-            db.collection(ALERTS_COLLECTION)
+            request.state.db.collection(ALERTS_COLLECTION)
             .order_by("generated_at", direction="DESCENDING")
             .limit(10)
             .stream()
         )
-
         alerts = [doc.to_dict() for doc in docs]
-
-        return {
-            "success": True,
-            "count":   len(alerts),
-            "alerts":  alerts,
-        }
+        return {"success": True, "count": len(alerts), "alerts": alerts}
 
     except Exception as e:
         print(f"[ERROR] Failed to fetch alerts: {e}")
@@ -205,19 +180,16 @@ async def get_alerts(
 async def get_alerts_by_segment(
     segment: str,
     request: Request,
-    #user: AuthenticatedUser = Depends(require_driver),
+    user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
-        db = request.state.db
-
         docs = (
-            db.collection(ALERTS_COLLECTION)
+            request.state.db.collection(ALERTS_COLLECTION)
             .where(filter=FieldFilter("segment", "==", segment))
             .order_by("generated_at", direction="DESCENDING")
             .limit(5)
             .stream()
         )
-
         alerts = [doc.to_dict() for doc in docs]
 
         if not alerts:
@@ -225,17 +197,10 @@ async def get_alerts_by_segment(
                 status_code=404,
                 detail=f"No alerts found for segment: {segment}"
             )
-
-        return {
-            "success": True,
-            "segment": segment,
-            "count":   len(alerts),
-            "alerts":  alerts,
-        }
+        return {"success": True, "segment": segment, "count": len(alerts), "alerts": alerts}
 
     except HTTPException:
         raise
-
     except Exception as e:
         print(f"[ERROR] Failed to fetch alerts for {segment}: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch alerts")
@@ -247,7 +212,7 @@ async def get_alerts_by_segment(
 @router.get("/state")
 async def get_state(
     request: Request,
-    #user: AuthenticatedUser = Depends(require_driver),
+    user: AuthenticatedUser = Depends(require_driver),
 ):
     db = request.state.db
     docs = (

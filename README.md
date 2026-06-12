@@ -8,7 +8,7 @@
 |------|------|
 | Raghad Shatnawi |  System Architecture, Backend, RSU Simulator |
 | Batool Kreishan |  |
-| Batool AL-Khateeb |  |
+| Batool AL-Khateeb | Backend |
 | Dana Altohul |  |
 
 ---
