@@ -21,7 +21,9 @@
 #               b_speed, b_flow = get_baseline(segment, db)
 # ============================================================
 
-from datetime import datetime
+from datetime import datetime, timezone
+
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 from config import (
     BASELINES_COLLECTION,
@@ -30,40 +32,35 @@ from config import (
 )
 
 
-# ─── update_baseline() ───────────────────────────────────────
-# Recomputes the rolling baseline for a segment after a new
-# summary has been saved and writes it to BASELINES_COLLECTION.
-
 def update_baseline(segment: str, db) -> dict:
     """
-    Read the last BASELINE_WINDOW_K summaries, compute the mean
-    avg_speed and flow_rate, and upsert the result in Firestore.
-
-    Returns the baseline dict that was saved.
+    Compute rolling baseline (avg speed + flow rate)
+    from last K segment summaries and store it in Firestore.
     """
+
     docs = (
         db.collection(SEGMENTS_COLLECTION)
-        .where("segment", "==", segment)
+        .where(filter=FieldFilter("segment", "==", segment))
         .order_by("computed_at", direction="DESCENDING")
         .limit(BASELINE_WINDOW_K)
         .stream()
     )
+
     rows = [d.to_dict() for d in docs]
 
-    speeds = [r["avg_speed"]  for r in rows if r.get("avg_speed")  is not None]
-    flows  = [r["flow_rate"]  for r in rows if r.get("flow_rate")  is not None]
+    speeds = [r["avg_speed"] for r in rows if r.get("avg_speed") is not None]
+    flows = [r["flow_rate"] for r in rows if r.get("flow_rate") is not None]
 
     baseline = {
-        "segment":             segment,
-        "baseline_avg_speed":  round(sum(speeds) / len(speeds), 2) if speeds else None,
-        "baseline_flow_rate":  round(sum(flows)  / len(flows),  2) if flows  else None,
-        "window_count":        len(rows),
-        "updated_at":          datetime.utcnow().isoformat(),
+        "segment": segment,
+        "baseline_avg_speed": round(sum(speeds) / len(speeds), 2) if speeds else None,
+        "baseline_flow_rate": round(sum(flows) / len(flows), 2) if flows else None,
+        "window_count": len(rows),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    # Upsert using segment name as document ID so there is always
-    # exactly one baseline document per segment.
     doc_id = segment.replace(" ", "_")
+
     db.collection(BASELINES_COLLECTION).document(doc_id).set(baseline)
 
     print(
@@ -72,16 +69,17 @@ def update_baseline(segment: str, db) -> dict:
         f"FlowRate={baseline['baseline_flow_rate']} | "
         f"Windows={baseline['window_count']}"
     )
+
     return baseline
 
 
-# ─── get_baseline() ──────────────────────────────────────────
-# Returns (baseline_avg_speed, baseline_flow_rate) for a segment.
-# Returns (None, None) if no baseline has been computed yet.
-
 def get_baseline(segment: str, db) -> tuple:
+    """
+    Retrieve stored baseline for a segment.
+    """
+
     doc_id = segment.replace(" ", "_")
-    doc    = db.collection(BASELINES_COLLECTION).document(doc_id).get()
+    doc = db.collection(BASELINES_COLLECTION).document(doc_id).get()
 
     if not doc.exists:
         return None, None

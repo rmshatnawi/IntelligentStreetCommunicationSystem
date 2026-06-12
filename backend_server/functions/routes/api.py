@@ -14,19 +14,18 @@
 #             /signals/{segment}  — driver, public_safety, admin
 #             /alerts             — driver, public_safety, admin
 #             /alerts/{segment}   — driver, public_safety, admin
-#             /state              — driver, public_safety, admin
+#             /state              — OPEN (auth disabled, see note below)
+#
+#           NOTE: /state currently has no auth dependency. Re-enable
+#           require_driver on it once the Flutter app sends a token.
 # ============================================================
 
 import requests as http_requests
-
-import requests as http_requests
-
-import requests                                       # ← fix: was missing
 from fastapi import APIRouter, HTTPException, Request, Depends
 from google.cloud.firestore_v1.base_query import FieldFilter
 from collections import defaultdict
 
-from config import SIGNALS_COLLECTION, ALERTS_COLLECTION, DIRECTIONS_API_KEY  # ← key from config
+from config import SIGNALS_COLLECTION, ALERTS_COLLECTION, DIRECTIONS_API_KEY
 from core.auth import require_driver
 from models.user_model import AuthenticatedUser
 from routes.analyze import determine_traffic_status
@@ -35,6 +34,8 @@ from routes.analyze import determine_traffic_status
 router = APIRouter()
 
 # Road shapes never change, so each piece is fetched once and reused.
+# Failures are also cached (as a straight line) so a bad/disabled
+# Directions key does not trigger a fresh Google call on every poll.
 _edge_cache: dict = {}
 
 
@@ -79,6 +80,11 @@ def _edge_path(a: dict, b: dict):
     straight = [{"lat": a["lat"], "lng": a["lng"]},
                 {"lat": b["lat"], "lng": b["lng"]}]
 
+    # No key configured -> skip Google entirely, use a straight line.
+    if not DIRECTIONS_API_KEY:
+        _edge_cache[key] = straight
+        return straight
+
     params = {
         "origin":      f'{a["lat"]},{a["lng"]}',
         "destination": f'{b["lat"]},{b["lng"]}',
@@ -95,10 +101,12 @@ def _edge_path(a: dict, b: dict):
             path = _decode_polyline(data["routes"][0]["overview_polyline"]["points"])
             _edge_cache[key] = path
             return path
-        print(f"[DIR] {key} status={data.get('status')} {data.get('error_message','')}")
+        print(f"[DIR] {key} status={data.get('status')} {data.get('error_message', '')}")
     except Exception as e:
         print(f"[DIR] {key} EXCEPTION {e!r}")
 
+    # Cache the fallback so we stop refetching on every /state poll.
+    _edge_cache[key] = straight
     return straight
 
 
@@ -209,10 +217,12 @@ async def get_alerts_by_segment(
 # ─── GET /state ──────────────────────────────────────────────
 # Per-RSU status + a colored road piece between each pair of RSUs.
 # Flutter draws one line per piece and colors each marker by its RSU.
+# Auth is currently disabled. To require a logged-in driver again,
+# uncomment the dependency below.
 @router.get("/state")
 async def get_state(
     request: Request,
-    user: AuthenticatedUser = Depends(require_driver),
+    # user: AuthenticatedUser = Depends(require_driver),
 ):
     db = request.state.db
     docs = (

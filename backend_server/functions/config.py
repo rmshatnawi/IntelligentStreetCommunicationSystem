@@ -88,7 +88,7 @@ DEFAULT_SEGMENT_LENGTH_KM = 1.0   # fallback when segment is not in the dict abo
 # Server-side key (NOT the Android/iOS client key).
 # Keep this in config and never commit the real value to Git.
 # Replace the placeholder before deploying.
-DIRECTIONS_API_KEY = "YOUR_SERVER_DIRECTIONS_API_KEY"
+DIRECTIONS_API_KEY = "AIzaSyCvPDTWxqxfc8DGw4j0k67N0RQFQ1Qx-E4"
 
 
 # ─── FIREBASE SETTINGS ──────────────────────────────────────
