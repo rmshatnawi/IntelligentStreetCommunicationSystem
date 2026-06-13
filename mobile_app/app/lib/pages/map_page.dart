@@ -2,11 +2,13 @@
 // Project:  Intelligent Street Communication System (ISCS)
 // File:     lib/pages/map_page.dart
 // Purpose:  Driver map screen.
-//           Polls GET /state. Each RSU has its own status, and the
-//           road between every pair of consecutive RSUs is drawn as
-//           a separate road-following line colored by local traffic.
+//           - Centers on the driver and follows movement (nav-style).
+//           - Polls GET /state and draws road-state polylines only.
+//           - RSU markers removed (driver does not need infrastructure).
+//           - Alerts button (top-left) routes to the alerts screen.
 //
-// Color:  free=green  moderate=amber  congested=orange  severe=red
+// Road state color (from server `status` field):
+//   free=green  moderate=orange  congested=deepOrange  severe=red
 // ============================================================
 
 import 'dart:async';
@@ -16,21 +18,21 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:app/app_theme.dart';
 
 // -- WIRING POINT 1: SERVER URL ------------------------------
 const String kBaseUrl = 'http://192.168.1.21:8000';
 
 const Duration kPollInterval = Duration(seconds: 5);
 
-// Fallback map center used before any signal arrives.
+// Used only until the first GPS fix arrives.
 const LatLng kFallbackCenter = LatLng(32.0728, 36.0876);
 
-class _Rsu {
-  final String id;
-  final LatLng pos;
-  final String status;
-  const _Rsu(this.id, this.pos, this.status);
-}
+const double kDriverZoom = 16;
+
+// -- WIRING POINT 3: ALERTS ROUTE (screen built later) -------
+const String kAlertsRoute = '/alerts';
 
 class _Edge {
   final String status;
@@ -38,17 +40,9 @@ class _Edge {
   const _Edge(this.status, this.path);
 }
 
-class _Seg {
-  final String segment;
-  final List<_Rsu> rsus;
-  final List<_Edge> edges;
-  const _Seg(this.segment, this.rsus, this.edges);
-}
-
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
-
-  final String routeName = '/map';
+  String get routeName => '/map';
 
   @override
   State<MapPage> createState() => _MapPageState();
@@ -57,12 +51,16 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
   GoogleMapController? _controller;
   Timer? _timer;
-  List<_Seg> _segments = [];
+  StreamSubscription<Position>? _posSub;
+
+  List<_Edge> _edges = [];
+  LatLng? _me;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    _initLocation();
     _refresh();
     _timer = Timer.periodic(kPollInterval, (_) => _refresh());
   }
@@ -70,8 +68,65 @@ class _MapPageState extends State<MapPage> {
   @override
   void dispose() {
     _timer?.cancel();
+    _posSub?.cancel();
     _controller?.dispose();
     super.dispose();
+  }
+
+  // ---- Location: permission, first fix, then a follow stream ----
+  Future<void> _initLocation() async {
+    try {
+      final serviceOn = await Geolocator.isLocationServiceEnabled();
+      if (!serviceOn) {
+        _setError('Location services are off');
+        return;
+      }
+
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        _setError('Location permission denied');
+        return;
+      }
+
+      final first = await Geolocator.getCurrentPosition();
+      _onPosition(first);
+
+      _posSub = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5,
+        ),
+      ).listen(_onPosition);
+    } catch (e) {
+      _setError(e.toString());
+    }
+  }
+
+  void _onPosition(Position pos) {
+    final here = LatLng(pos.latitude, pos.longitude);
+    if (!mounted) return;
+    setState(() => _me = here);
+    // Follow the driver, nav-style.
+    _controller?.animateCamera(CameraUpdate.newLatLng(here));
+  }
+
+  void _recenter() {
+    if (_me != null) {
+      _controller?.animateCamera(CameraUpdate.newLatLngZoom(_me!, kDriverZoom));
+    }
+  }
+
+  void _openAlerts() {
+    // The alerts screen is built later. Once its route is registered in
+    // main.dart, replace the snackbar with the navigation call below:
+    // Navigator.pushNamed(context, kAlertsRoute);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Alerts screen coming soon')));
   }
 
   // -- WIRING POINT 2: AUTH TOKEN ----------------------------
@@ -89,6 +144,7 @@ class _MapPageState extends State<MapPage> {
     return out;
   }
 
+  // Pull road-state edges from /state. RSU points are ignored on purpose.
   Future<void> _refresh() async {
     try {
       final token = await _idToken();
@@ -103,168 +159,212 @@ class _MapPageState extends State<MapPage> {
           .timeout(const Duration(seconds: 6));
 
       if (res.statusCode != 200) {
-        setState(() => _error = 'state HTTP ${res.statusCode}');
+        _setError('state HTTP ${res.statusCode}');
         return;
       }
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final list = (body['segments'] as List?) ?? const [];
 
-      final parsed = <_Seg>[];
+      final edges = <_Edge>[];
       for (final s in list) {
-        final seg = s['segment']?.toString() ?? '';
-
-        final rsus = <_Rsu>[];
-        for (final r in (s['rsus'] as List?) ?? const []) {
-          final lat = (r['lat'] as num?)?.toDouble();
-          final lng = (r['lng'] as num?)?.toDouble();
-          if (lat == null || lng == null) continue;
-          rsus.add(
-            _Rsu(
-              r['rsu_id']?.toString() ?? '',
-              LatLng(lat, lng),
-              r['status']?.toString() ?? 'free',
-            ),
-          );
-        }
-
-        final edges = <_Edge>[];
         for (final e in (s['edges'] as List?) ?? const []) {
           edges.add(
             _Edge(e['status']?.toString() ?? 'free', _parsePath(e['path'])),
           );
         }
-
-        parsed.add(_Seg(seg, rsus, edges));
       }
 
       if (!mounted) return;
       setState(() {
-        _segments = parsed;
+        _edges = edges;
         _error = null;
       });
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e.toString());
+      _setError(e.toString());
     }
   }
 
-  double _hue(String status) {
-    switch (status) {
-      case 'severe':
-        return BitmapDescriptor.hueRed;
-      case 'congested':
-        return BitmapDescriptor.hueOrange;
-      case 'moderate':
-        return BitmapDescriptor.hueYellow;
-      default:
-        return BitmapDescriptor.hueGreen;
-    }
+  void _setError(String msg) {
+    if (!mounted) return;
+    setState(() => _error = msg);
   }
 
   Color _color(String status) {
     switch (status) {
       case 'severe':
-        return Colors.red;
+        return AppTheme.congested; // red
       case 'congested':
-        return Colors.orange;
+        return Colors.deepOrange;
       case 'moderate':
-        return Colors.amber;
+        return AppTheme.moderate; // orange
       default:
-        return Colors.green;
+        return AppTheme.clear; // green
     }
-  }
-
-  String _label(String status) {
-    switch (status) {
-      case 'severe':
-        return 'Severe congestion';
-      case 'congested':
-        return 'Congested';
-      case 'moderate':
-        return 'Moderate';
-      default:
-        return 'Clear';
-    }
-  }
-
-  Set<Marker> get _markers {
-    final m = <Marker>{};
-    for (final seg in _segments) {
-      for (final rsu in seg.rsus) {
-        m.add(
-          Marker(
-            markerId: MarkerId(rsu.id),
-            position: rsu.pos,
-            icon: BitmapDescriptor.defaultMarkerWithHue(_hue(rsu.status)),
-            infoWindow: InfoWindow(
-              title: '${rsu.id} - ${seg.segment}',
-              snippet: _label(rsu.status),
-            ),
-          ),
-        );
-      }
-    }
-    return m;
   }
 
   Set<Polyline> get _lines {
     final l = <Polyline>{};
-    for (final seg in _segments) {
-      for (var i = 0; i < seg.edges.length; i++) {
-        final edge = seg.edges[i];
-        if (edge.path.length < 2) continue;
-        l.add(
-          Polyline(
-            polylineId: PolylineId('${seg.segment}_$i'),
-            points: edge.path,
-            color: _color(edge.status),
-            width: 6,
-          ),
-        );
-      }
+    for (var i = 0; i < _edges.length; i++) {
+      final e = _edges[i];
+      if (e.path.length < 2) continue;
+      l.add(
+        Polyline(
+          polylineId: PolylineId('edge_$i'),
+          points: e.path,
+          color: _color(e.status),
+          width: 6,
+        ),
+      );
     }
     return l;
   }
 
-  LatLng get _center {
-    final all = _segments.expand((s) => s.rsus).map((r) => r.pos).toList();
-    if (all.isEmpty) return kFallbackCenter;
-    final lat = all.map((p) => p.latitude).reduce((a, b) => a + b) / all.length;
-    final lng =
-        all.map((p) => p.longitude).reduce((a, b) => a + b) / all.length;
-    return LatLng(lat, lng);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final initial = _me ?? kFallbackCenter;
     return Scaffold(
-      appBar: AppBar(title: const Text('Live RSU Map')),
       body: Stack(
         children: [
           GoogleMap(
-            initialCameraPosition: CameraPosition(target: _center, zoom: 13.5),
-            markers: _markers,
+            initialCameraPosition: CameraPosition(
+              target: initial,
+              zoom: kDriverZoom,
+            ),
             polylines: _lines,
+            myLocationEnabled: true,
             myLocationButtonEnabled: false,
-            onMapCreated: (c) => _controller = c,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
+            onMapCreated: (c) {
+              _controller = c;
+              if (_me != null) {
+                c.moveCamera(CameraUpdate.newLatLngZoom(_me!, kDriverZoom));
+              }
+            },
           ),
-          if (_segments.isEmpty && _error == null)
-            const Positioned(
-              left: 12,
-              right: 12,
-              bottom: 12,
-              child: _Banner('Waiting for RSU signals...'),
+
+          // Alerts button - top-left.
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.space12),
+                child: _RoundIcon(
+                  icon: Icons.notifications_outlined,
+                  onTap: _openAlerts,
+                ),
+              ),
             ),
-          if (_error != null)
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 12,
-              child: _Banner('No live data: $_error'),
+          ),
+
+          // Recenter button - bottom-right.
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: const EdgeInsets.all(AppTheme.space12),
+                child: _RoundIcon(icon: Icons.my_location, onTap: _recenter),
+              ),
             ),
+          ),
+
+          // Road-state legend - bottom-left.
+          const SafeArea(
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: Padding(
+                padding: EdgeInsets.all(AppTheme.space12),
+                child: _Legend(),
+              ),
+            ),
+          ),
+
+          // if (_error != null)
+          // SafeArea(
+          //   child: Align(
+          //     alignment: Alignment.topCenter,
+          //     child: Padding(
+          //       padding: const EdgeInsets.all(AppTheme.space12),
+          //       child: _Banner('No live data: $_error'),
+          //     ),
+          //   ),
+          // ),
         ],
       ),
+    );
+  }
+}
+
+class _RoundIcon extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _RoundIcon({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppTheme.secondary,
+      shape: const CircleBorder(),
+      elevation: AppTheme.elevationMedium,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.space12),
+          child: Icon(icon, color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+class _Legend extends StatelessWidget {
+  const _Legend();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+      elevation: AppTheme.elevationSmall,
+      child: const Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: AppTheme.space12,
+          vertical: AppTheme.space8,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _LegendRow(AppTheme.clear, 'Clear'),
+            SizedBox(height: AppTheme.space4),
+            _LegendRow(AppTheme.moderate, 'Moderate'),
+            SizedBox(height: AppTheme.space4),
+            _LegendRow(Colors.deepOrange, 'Congested'),
+            SizedBox(height: AppTheme.space4),
+            _LegendRow(AppTheme.congested, 'Severe'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LegendRow extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _LegendRow(this.color, this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 16, height: 4, color: color),
+        const SizedBox(width: AppTheme.space8),
+        Text(label, style: AppTheme.light.textTheme.bodySmall),
+      ],
     );
   }
 }

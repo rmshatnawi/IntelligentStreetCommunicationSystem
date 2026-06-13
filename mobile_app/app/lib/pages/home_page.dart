@@ -1,6 +1,7 @@
 import 'package:app/pages/map_page.dart';
 import 'package:app/pages/profile_page.dart';
 import 'package:app/pages/settings_page.dart';
+import 'package:app/pages/history_page.dart';
 import 'package:app/app_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -13,13 +14,18 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Tab order: Profile(0), Settings(1), Map(2). Map is the default.
-  static const int _mapIndex = 2;
+  // Tab order: Profile(0), Settings(1), Map(2), History(3). Map is default.
+  static const int _mapIndex = 0;
   int _currentIndex = _mapIndex;
 
-  // IndexedStack keeps all three pages mounted, so MapPage's polling
-  // timer starts on home load and survives tab switches.
-  final List<Widget> _pages = const [ProfilePage(), SettingsPage(), MapPage()];
+  // IndexedStack keeps all pages mounted, so MapPage's location stream
+  // and /state polling start on home load and survive tab switches.
+  final List<Widget> _pages = const [
+    MapPage(),
+    HistoryPage(),
+    ProfilePage(),
+    SettingsPage(),
+  ];
 
   void _onTap(int index) {
     setState(() => _currentIndex = index);
@@ -40,6 +46,16 @@ class _HomePageState extends State<HomePage> {
         showUnselectedLabels: true,
         items: const [
           BottomNavigationBarItem(
+            icon: Icon(Icons.map_outlined),
+            activeIcon: Icon(Icons.map),
+            label: 'Map',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history_outlined),
+            activeIcon: Icon(Icons.history),
+            label: 'History',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profile',
@@ -48,11 +64,6 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.settings_outlined),
             activeIcon: Icon(Icons.settings),
             label: 'Settings',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            activeIcon: Icon(Icons.map),
-            label: 'Map',
           ),
         ],
       ),
