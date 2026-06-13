@@ -31,7 +31,7 @@ const LatLng kFallbackCenter = LatLng(32.0728, 36.0876);
 
 const double kDriverZoom = 16;
 
-// -- WIRING POINT 3: ALERTS ROUTE (screen built later) -------
+// -- WIRING POINT 3: ALERTS ROUTE ----------------------------
 const String kAlertsRoute = '/alerts';
 
 class _Edge {
@@ -55,6 +55,7 @@ class _MapPageState extends State<MapPage> {
 
   List<_Edge> _edges = [];
   LatLng? _me;
+  bool _locationReady = false;
   String? _error;
 
   @override
@@ -92,6 +93,10 @@ class _MapPageState extends State<MapPage> {
         return;
       }
 
+      // Permission granted: flip the flag so the map enables the blue dot.
+      if (!mounted) return;
+      setState(() => _locationReady = true);
+
       final first = await Geolocator.getCurrentPosition();
       _onPosition(first);
 
@@ -121,12 +126,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _openAlerts() {
-    // The alerts screen is built later. Once its route is registered in
-    // main.dart, replace the snackbar with the navigation call below:
-    // Navigator.pushNamed(context, kAlertsRoute);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Alerts screen coming soon')));
+    Navigator.pushNamed(context, kAlertsRoute);
   }
 
   // -- WIRING POINT 2: AUTH TOKEN ----------------------------
@@ -232,7 +232,7 @@ class _MapPageState extends State<MapPage> {
               zoom: kDriverZoom,
             ),
             polylines: _lines,
-            myLocationEnabled: true,
+            myLocationEnabled: _locationReady,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
             mapToolbarEnabled: false,
@@ -280,16 +280,16 @@ class _MapPageState extends State<MapPage> {
             ),
           ),
 
-          // if (_error != null)
-          // SafeArea(
-          //   child: Align(
-          //     alignment: Alignment.topCenter,
-          //     child: Padding(
-          //       padding: const EdgeInsets.all(AppTheme.space12),
-          //       child: _Banner('No live data: $_error'),
-          //     ),
-          //   ),
-          // ),
+          if (_error != null)
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTheme.space12),
+                  child: _Banner('No live data: $_error'),
+                ),
+              ),
+            ),
         ],
       ),
     );

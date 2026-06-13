@@ -1,5 +1,4 @@
 import 'package:app/pages/home_page.dart';
-import 'package:app/pages/map_page.dart';
 import 'package:app/widgets/custom_button.dart';
 import 'package:app/widgets/logo_and_title.dart';
 import 'package:flutter/material.dart';

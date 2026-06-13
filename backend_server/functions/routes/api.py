@@ -166,7 +166,7 @@ async def get_signals_by_segment(
 @router.get("/alerts")
 async def get_alerts(
     request: Request,
-    user: AuthenticatedUser = Depends(require_driver),
+    # user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
         docs = (
@@ -188,7 +188,7 @@ async def get_alerts(
 async def get_alerts_by_segment(
     segment: str,
     request: Request,
-    user: AuthenticatedUser = Depends(require_driver),
+    # user: AuthenticatedUser = Depends(require_driver),
 ):
     try:
         docs = (

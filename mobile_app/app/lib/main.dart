@@ -6,6 +6,8 @@ import 'package:app/pages/signin_page.dart';
 import 'package:app/pages/welcome_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:app/pages/alerts_page.dart';
+import 'package:app/pages/obu_pairing_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +33,8 @@ class MyApp extends StatelessWidget {
         SignInPage().routeName: (context) => const SignInPage(),
         RegisterationPage().routeName: (context) => const RegisterationPage(),
         HomePage().routeName: (context) => const HomePage(),
+        AlertsPage().routeName: (context) => const AlertsPage(),
+        ObuPairingPage().routeName: (context) => const ObuPairingPage(),
         // MapPage().routeName: (context) => const MapPage(),
       },
     );
