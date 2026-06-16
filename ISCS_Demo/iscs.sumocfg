@@ -1,0 +1,12 @@
+<configuration>
+    <input>
+        <net-file value="osm.net.xml.gz"/>
+        <route-files value="iscs.rou.xml"/>
+        <additional-files value="osm.poly.xml.gz"/>
+        <gui-settings-file value="iscs_view.xml"/>
+    </input>
+    <time>
+        <begin value="0"/>
+        <end value="3600"/>
+    </time>
+</configuration>

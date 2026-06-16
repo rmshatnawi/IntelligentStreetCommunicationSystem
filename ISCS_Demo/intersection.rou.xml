@@ -1,0 +1,106 @@
+<routes>
+    <vType id="car"
+           accel="2.6"
+           decel="4.5"
+           sigma="0.5"
+           length="5"
+           minGap="2.5"
+           maxSpeed="11.11"
+           guiShape="passenger"/>
+
+    <trip id="CAR-001" type="car" depart="0" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-002" type="car" depart="8" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-003" type="car" depart="16" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-004" type="car" depart="24" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-005" type="car" depart="32" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-006" type="car" depart="40" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-007" type="car" depart="48" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-008" type="car" depart="56" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-009" type="car" depart="60" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-010" type="car" depart="65" from="R_to_C" to="C_to_T"/>
+    <trip id="CAR-011" type="car" depart="70" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-012" type="car" depart="75" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-013" type="car" depart="80" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-014" type="car" depart="85" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-015" type="car" depart="90" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-016" type="car" depart="95" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-017" type="car" depart="100" from="T_to_C" to="C_to_B"/>
+    <trip id="CAR-018" type="car" depart="105" from="T_to_C" to="C_to_L"/>
+    <trip id="STL-999" type="car" depart="110" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-020" type="car" depart="115" from="R_to_C" to="C_to_L"/>
+    <trip id="CAR-021" type="car" depart="120" from="R_to_C" to="C_to_T"/>
+    <trip id="CAR-022" type="car" depart="122" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-023" type="car" depart="124" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-024" type="car" depart="126" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-025" type="car" depart="128" from="T_to_C" to="C_to_B"/>
+    <trip id="CAR-026" type="car" depart="130" from="L_to_C" to="C_to_R"/>
+    <trip id="CAR-027" type="car" depart="132" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-028" type="car" depart="134" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-029" type="car" depart="136" from="R_to_C" to="C_to_L"/>
+    <trip id="CAR-030" type="car" depart="138" from="R_to_C" to="C_to_T"/>
+    <trip id="CAR-031" type="car" depart="140" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-032" type="car" depart="142" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-033" type="car" depart="144" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-034" type="car" depart="146" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-035" type="car" depart="148" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-036" type="car" depart="150" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-037" type="car" depart="152" from="T_to_C" to="C_to_R"/>
+    <trip id="CAR-038" type="car" depart="154" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-039" type="car" depart="156" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-040" type="car" depart="158" from="L_to_C" to="C_to_R"/>
+    <trip id="CAR-041" type="car" depart="160" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-042" type="car" depart="162" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-043" type="car" depart="164" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-044" type="car" depart="166" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-045" type="car" depart="168" from="L_to_C" to="C_to_R"/>
+    <trip id="CAR-046" type="car" depart="170" from="T_to_C" to="C_to_R"/>
+    <trip id="CAR-047" type="car" depart="172" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-048" type="car" depart="174" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-049" type="car" depart="176" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-050" type="car" depart="178" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-051" type="car" depart="180" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-052" type="car" depart="182" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-053" type="car" depart="184" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-054" type="car" depart="186" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-055" type="car" depart="188" from="T_to_C" to="C_to_R"/>
+    <trip id="STL-555" type="car" depart="190" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-057" type="car" depart="192" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-058" type="car" depart="194" from="B_to_C" to="C_to_T"/>
+    <trip id="CAR-059" type="car" depart="196" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-060" type="car" depart="198" from="B_to_C" to="C_to_L"/>
+    <trip id="CAR-061" type="car" depart="200" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-062" type="car" depart="202" from="B_to_C" to="C_to_T"/>
+    <trip id="CAR-063" type="car" depart="204" from="R_to_C" to="C_to_T"/>
+    <trip id="CAR-064" type="car" depart="206" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-065" type="car" depart="208" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-066" type="car" depart="210" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-067" type="car" depart="212" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-068" type="car" depart="214" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-069" type="car" depart="216" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-070" type="car" depart="218" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-071" type="car" depart="220" from="L_to_C" to="C_to_R"/>
+    <trip id="CAR-072" type="car" depart="222" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-073" type="car" depart="224" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-074" type="car" depart="226" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-075" type="car" depart="228" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-076" type="car" depart="230" from="B_to_C" to="C_to_L"/>
+    <trip id="CAR-077" type="car" depart="232" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-078" type="car" depart="234" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-079" type="car" depart="236" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-080" type="car" depart="238" from="L_to_C" to="C_to_B"/>
+    <trip id="CAR-081" type="car" depart="240" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-082" type="car" depart="244" from="T_to_C" to="C_to_L"/>
+    <trip id="CAR-083" type="car" depart="248" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-084" type="car" depart="252" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-085" type="car" depart="256" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-086" type="car" depart="260" from="R_to_C" to="C_to_L"/>
+    <trip id="CAR-087" type="car" depart="264" from="B_to_C" to="C_to_T"/>
+    <trip id="CAR-088" type="car" depart="268" from="L_to_C" to="C_to_T"/>
+    <trip id="CAR-089" type="car" depart="272" from="L_to_C" to="C_to_R"/>
+    <trip id="CAR-090" type="car" depart="276" from="R_to_C" to="C_to_B"/>
+    <trip id="CAR-091" type="car" depart="280" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-092" type="car" depart="284" from="B_to_C" to="C_to_L"/>
+    <trip id="CAR-093" type="car" depart="288" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-094" type="car" depart="292" from="B_to_C" to="C_to_R"/>
+    <trip id="CAR-095" type="car" depart="296" from="B_to_C" to="C_to_R"/>
+</routes>
