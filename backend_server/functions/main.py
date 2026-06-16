@@ -17,6 +17,7 @@ from fastapi import FastAPI, Request
 
 from config import HOST, PORT, FIREBASE_CREDENTIALS_PATH
 from routes import ingest, analyze, api, admin, summaries
+from fastapi.middleware.cors import CORSMiddleware
 
 
 # ─── STEP 1: Initialize Firebase ────────────────────────────
@@ -33,7 +34,13 @@ app = FastAPI(
     description="Backend server for receiving and processing RSU traffic signals",
     version="1.0.0"
 )
-
+# ─── CORS: allow the dashboard to connect ───────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ─── STEP 3: Inject Firestore into every request ────────────
 @app.middleware("http")

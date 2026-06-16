@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISCS - Intelligent Street Communication Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>🚦 ISCS Traffic Dashboard</h1>
+                <p>Intelligent Street Communication System - Real-time Monitoring</p>
+            </div>
+            <div class="header-status">
+                <span id="server-status" class="status-indicator">● Connecting...</span>
+                <span id="last-update" class="last-update">Last update: --:--:--</span>
+            </div>
+        </header>
+
+        <div class="dashboard">
+            <!-- Map Container -->
+            <div class="map-section">
+                <div id="map"></div>
+                <div id="loading-spinner" class="loading-spinner">Loading map...</div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="right-panel">
+                <!-- Segments Overview -->
+                <div class="panel-section">
+                    <h2>📊 Road Segments</h2>
+                    <div id="segments-list" class="segments-list">
+                        <p class="loading">Loading segments...</p>
+                    </div>
+                </div>
+
+                <!-- RSU List -->
+                <div class="panel-section">
+                    <h2>📍 Roadside Units (RSUs)</h2>
+                    <div id="rsu-list" class="rsu-list">
+                        <p class="loading">Loading RSU data...</p>
+                    </div>
+                </div>
+
+                <!-- Details Panel -->
+                <div class="panel-section details-panel">
+                    <h2>📋 Details</h2>
+                    <div id="details-content" class="details-content">
+                        <p>Click on a segment or RSU to view details</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
