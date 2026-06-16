@@ -51,13 +51,8 @@ function getStatusColor(status) {
 }
 
 function getStatusEmoji(status) {
-    const emojis = {
-        free: '✅',
-        moderate: '⚠️',
-        congested: '🚫',
-        severe: '🚨',
-    };
-    return emojis[status] || '📍';
+    
+    return'';
 }
 
 // ============================================================
@@ -97,7 +92,7 @@ function addEdgePolyline(path, status) {
 
 function addRsuMarker(rsu, segment) {
     const color = getStatusColor(rsu.status);
-    const emoji = getStatusEmoji(rsu.status);
+    //const emoji = getStatusEmoji(rsu.status);
 
     const iconHtml = `
         <div style="
@@ -334,10 +329,10 @@ function determineStatus(speed) {
 }
 
 function getSpeedDescription(speed) {
-    if (speed >= 60) return '✅ Free flow traffic';
-    if (speed >= 40) return '⚠️ Moderate traffic';
-    if (speed >= 20) return '🚫 Congested traffic';
-    return '🚨 Severe congestion';
+    if (speed >= 60) return ' Free flow traffic';
+    if (speed >= 40) return ' Moderate traffic';
+    if (speed >= 20) return ' Congested traffic';
+    return ' Severe congestion';
 }
 
 function updateServerStatus(online) {
@@ -407,7 +402,7 @@ function updateMapAndUI(segments) {
 // ============================================================
 
 window.addEventListener('load', () => {
-    console.log('🚀 ISCS Dashboard initializing...');
+    console.log(' Intelligent Street Dashboard initializing...');
     
     initMap();
     fetchStateData();
@@ -415,7 +410,7 @@ window.addEventListener('load', () => {
     // Refresh data every 5 seconds
     setInterval(fetchStateData, CONFIG.REFRESH_INTERVAL);
 
-    console.log('✅ Dashboard ready');
+    console.log(' Dashboard ready');
 });
 
 // ============================================================
