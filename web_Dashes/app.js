@@ -5,9 +5,10 @@
 
 const CONFIG = {
     API_BASE_URL: 'http://localhost:8000',
-    CENTER_LAT: 31.9454,
-    CENTER_LNG: 35.9284,
-    ZOOM_LEVEL: 14,
+     CENTER_LAT: 32.5557,
+    CENTER_LNG: 35.8505,
+
+    ZOOM_LEVEL: 16,
     REFRESH_INTERVAL: 5000, // 5 seconds
 };
 
@@ -92,7 +93,7 @@ function addEdgePolyline(path, status) {
 
 function addRsuMarker(rsu, segment) {
     const color = getStatusColor(rsu.status);
-    //const emoji = getStatusEmoji(rsu.status);
+    
 
     const iconHtml = `
         <div style="
@@ -108,7 +109,7 @@ function addRsuMarker(rsu, segment) {
             border: 3px solid white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.25);
         ">
-            ${emoji}
+            RSU
         </div>
     `;
 
@@ -132,7 +133,7 @@ function addRsuMarker(rsu, segment) {
         </div>
         <div class="popup-item">
             <span class="popup-label">Status:</span>
-            <span class="popup-value">${rsu.status.toUpperCase()} ${getStatusEmoji(rsu.status)}</span>
+            <span class="popup-value">${rsu.status.toUpperCase()}</span>
         </div>
     `;
 
@@ -170,7 +171,7 @@ function displaySegments(segments) {
         item.innerHTML = `
             <div class="item-header">
                 <span class="item-name">${segment.segment}</span>
-                <span class="item-status status-${status}">${getStatusEmoji(status)} ${status}</span>
+                <span class="item-status status-${status}">${status}</span>
             </div>
             <div class="item-info">
                 <div>Speed: ${avgSpeed} km/h</div>
@@ -199,7 +200,7 @@ function displayRsus(rsus, segment) {
         item.innerHTML = `
             <div class="item-header">
                 <span class="item-name">${rsu.rsu_id}</span>
-                <span class="item-status status-${rsu.status}">${getStatusEmoji(rsu.status)} ${rsu.status.toUpperCase()}</span>
+                <span class="item-status status-${rsu.status}"> ${rsu.status.toUpperCase()}</span>
             </div>
             <div class="item-info">
                 <div>Speed: ${(rsu.avg_speed || 0).toFixed(1)} km/h</div>
@@ -287,7 +288,7 @@ function showRsuDetails(rsu, segment) {
         <div class="details-item">
             <div class="detail-label">Status</div>
             <div class="detail-value">
-                <strong>${rsu.status.toUpperCase()} ${getStatusEmoji(rsu.status)}</strong>
+                <strong>${rsu.status.toUpperCase()}</strong>
             </div>
         </div>
 
