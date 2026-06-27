@@ -2,9 +2,8 @@
 # Project:  Intelligent Street Communication System (ISCS)
 # File:     config.py
 # Author:   Raghad Shatnawi
-# Date:     March 2026
+# Last Modified: 27/06/2026
 # Author:   Batool Alkhateeb
-# Last Modified: June 2026
 # Purpose:  Central configuration file for the server.
 #           All settings live here so if anything changes
 #           (port, collection names, thresholds, etc.) we only
@@ -14,14 +13,13 @@
 #   - Added Firestore collection for Stolen Vehicle Detection.
 # Updates (June 2026)
 #   - Added baseline & persistence parameters (FR from GP1 report).
-#   - Moved DIRECTIONS_API_KEY here (security fix).
+#   - Moved DIRECTIONS_API_KEY to .env (security fix).
 # ============================================================
 
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
-DIRECTIONS_API_KEY = os.environ.get("DIRECTIONS_API_KEY", "")
 
 # ─── SERVER SETTINGS ────────────────────────────────────────
 HOST = "0.0.0.0"   # accept connections from any machine on the network
@@ -35,7 +33,7 @@ SEGMENTS_COLLECTION         = "traffic_summaries" # stores road segment summarie
 STOLEN_VEHICLES_COLLECTION  = "stolen_vehicles"   # stores stolen vehicle records
 VEHICLE_TRACKING_COLLECTION = "vehicle_tracking"  # stores vehicle movement/tracking records
 SECURITY_ALERTS_COLLECTION  = "security_alerts"   # stores security alerts (stolen vehicle detections)
-BASELINES_COLLECTION        = "segment_baselines" # stores rolling baseline per segment (NEW)
+BASELINES_COLLECTION        = "segment_baselines" # stores rolling baseline per segment
 
 
 # ─── TRAFFIC THRESHOLDS ─────────────────────────────────────
@@ -90,10 +88,9 @@ DEFAULT_SEGMENT_LENGTH_KM = 1.0   # fallback when segment is not in the dict abo
 
 
 # ─── GOOGLE DIRECTIONS API ──────────────────────────────────
-# Server-side key (NOT the Android/iOS client key).
-# Keep this in config and never commit the real value to Git.
-# Replace the placeholder before deploying.
-DIRECTIONS_API_KEY = "AIzaSyCvPDTWxqxfc8DGw4j0k67N0RQFQ1Qx-E4"
+# Loaded from .env — never hardcode here.
+# Set DIRECTIONS_API_KEY in backend_server/functions/.env
+DIRECTIONS_API_KEY = os.environ.get("DIRECTIONS_API_KEY", "")
 
 
 # ─── FIREBASE SETTINGS ──────────────────────────────────────
