@@ -4,11 +4,7 @@
 // Purpose:  Driver map screen.
 //           - Centers on the driver and follows movement (nav-style).
 //           - Polls GET /state and draws road-state polylines only.
-//           - RSU markers removed (driver does not need infrastructure).
 //           - Alerts button (top-left) routes to the alerts screen.
-//
-// Road state color (from server `status` field):
-//   free=green  moderate=orange  congested=deepOrange  severe=red
 // ============================================================
 
 import 'dart:async';
