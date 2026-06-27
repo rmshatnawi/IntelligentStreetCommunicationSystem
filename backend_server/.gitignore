@@ -70,4 +70,4 @@ node_modules/
 
 # Sensitive credentials — never commit these
 functions/serviceAccountKey.json
-functions/config.py
+functions/.env
