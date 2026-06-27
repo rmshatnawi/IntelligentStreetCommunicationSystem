@@ -67,3 +67,7 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Sensitive credentials — never commit these
+functions/serviceAccountKey.json
+functions/config.py

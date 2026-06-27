@@ -17,6 +17,11 @@
 #   - Moved DIRECTIONS_API_KEY here (security fix).
 # ============================================================
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+DIRECTIONS_API_KEY = os.environ.get("DIRECTIONS_API_KEY", "")
 
 # ─── SERVER SETTINGS ────────────────────────────────────────
 HOST = "0.0.0.0"   # accept connections from any machine on the network
