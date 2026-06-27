@@ -7,10 +7,6 @@
 //             - MockObuService : simulator, no hardware needed (demo).
 //             - BleObuService  : real ESP32 over BLE (flutter_blue_plus).
 //           The app SENDS the plate number to the OBU after connecting.
-//
-//  IMPORTANT: kObuServiceUuid / kObuPlateCharUuid MUST match the
-//  UUIDs declared in the ESP32 firmware. These are the common ESP32
-//  BLE example UUIDs — change them in both places together.
 // ============================================================
 
 import 'dart:async';
