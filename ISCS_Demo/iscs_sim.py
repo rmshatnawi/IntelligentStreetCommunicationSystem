@@ -17,7 +17,7 @@ import requests
 import traci
 from datetime import datetime, timezone
 
-BACKEND = "http://192.168.1.21:8000"     # update post-Render-deploy
+BACKEND = "http://127.0.0.1:8000"     # update post-Render-deploy
 SERVER_URL = BACKEND + "/ingest"
 RSU_URL = BACKEND + "/rsus"
 

@@ -4,7 +4,7 @@
 // ============================================================
 
 const CONFIG = {
-    API_BASE_URL: 'http://localhost:8000',
+    API_BASE_URL: 'http://192.168.1.21:8000',
     CENTER_LAT: 31.9454,
     CENTER_LNG: 35.9284,
     ZOOM_LEVEL: 14,

@@ -2,28 +2,29 @@
 # Project:  Intelligent Street Communication System (ISCS)
 # File:     routes/api.py
 # Author:   Raghad Shatnawi
-# Last Modified: April 2026
-# Author:   Batool Alkhateeb
-# Last Modified: June 2026
+# Last Modified: 22/06/2026
 # Purpose:  Provides endpoints for the Flutter mobile app.
 #           Flutter calls these to display live traffic data,
 #           road segment statuses, and active alerts.
 #
 #           Role access per route:
-#             /signals            — driver, public_safety, admin
-#             /signals/{segment}  — driver, public_safety, admin
-#             /alerts             — driver, public_safety, admin
-#             /alerts/{segment}   — driver, public_safety, admin
-#             /state              — OPEN (auth disabled, see note below)
+#             /signals              - driver, public_safety, admin
+#             /signals/{segment}    - driver, public_safety, admin
+#             /alerts               - driver, public_safety, admin
+#             /alerts/{segment}     - driver, public_safety, admin
+#             /state                - OPEN (auth disabled)
+#             /report-incident      - OPEN (no role required for testing)
 #
-#           NOTE: /state currently has no auth dependency. Re-enable
-#           require_driver on it once the Flutter app sends a token.
 # ============================================================
 
 import requests as http_requests
+from datetime import datetime
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException, Request, Depends
 from google.cloud.firestore_v1.base_query import FieldFilter
 from collections import defaultdict
+from pydantic import BaseModel
 
 from config import SIGNALS_COLLECTION, ALERTS_COLLECTION, DIRECTIONS_API_KEY
 from core.auth import require_driver
@@ -33,14 +34,10 @@ from routes.analyze import determine_traffic_status
 
 router = APIRouter()
 
-# Road shapes never change, so each piece is fetched once and reused.
-# Failures are also cached (as a straight line) so a bad/disabled
-# Directions key does not trigger a fresh Google call on every poll.
 _edge_cache: dict = {}
 
 
 def _decode_polyline(encoded: str):
-    """Decode a Google encoded polyline into a list of {lat, lng} dicts."""
     points, index, lat, lng = [], 0, 0, 0
     while index < len(encoded):
         for is_lat in (True, False):
@@ -62,7 +59,6 @@ def _decode_polyline(encoded: str):
 
 
 def _order_rsus(rsus: list):
-    # Order the RSUs along the road's dominant axis (E-W or N-S).
     if len(rsus) <= 2:
         return rsus
     lat_span = max(r["lat"] for r in rsus) - min(r["lat"] for r in rsus)
@@ -72,7 +68,6 @@ def _order_rsus(rsus: list):
 
 
 def _edge_path(a: dict, b: dict):
-    # Road-following shape between two consecutive RSUs, cached.
     key = f'{a["rsu_id"]}->{b["rsu_id"]}'
     if key in _edge_cache:
         return _edge_cache[key]
@@ -80,7 +75,6 @@ def _edge_path(a: dict, b: dict):
     straight = [{"lat": a["lat"], "lng": a["lng"]},
                 {"lat": b["lat"], "lng": b["lng"]}]
 
-    # No key configured -> skip Google entirely, use a straight line.
     if not DIRECTIONS_API_KEY:
         _edge_cache[key] = straight
         return straight
@@ -105,125 +99,13 @@ def _edge_path(a: dict, b: dict):
     except Exception as e:
         print(f"[DIR] {key} EXCEPTION {e!r}")
 
-    # Cache the fallback so we stop refetching on every /state poll.
     _edge_cache[key] = straight
     return straight
 
 
-# ─── GET /signals ────────────────────────────────────────────
-@router.get("/signals")
-async def get_signals(
-    request: Request,
-    user: AuthenticatedUser = Depends(require_driver),
-):
-    try:
-        docs = (
-            request.state.db.collection(SIGNALS_COLLECTION)
-            .order_by("received_at", direction="DESCENDING")
-            .limit(20)
-            .stream()
-        )
-        signals = [doc.to_dict() for doc in docs]
-        return {"success": True, "count": len(signals), "signals": signals}
-
-    except Exception as e:
-        print(f"[ERROR] Failed to fetch signals: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch signals")
-
-
-# ─── GET /signals/{segment} ──────────────────────────────────
-@router.get("/signals/{segment}")
-async def get_signals_by_segment(
-    segment: str,
-    request: Request,
-    user: AuthenticatedUser = Depends(require_driver),
-):
-    try:
-        docs = (
-            request.state.db.collection(SIGNALS_COLLECTION)
-            .where(filter=FieldFilter("segment", "==", segment))
-            .order_by("received_at", direction="DESCENDING")
-            .limit(10)
-            .stream()
-        )
-        signals = [doc.to_dict() for doc in docs]
-
-        if not signals:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No signals found for segment: {segment}"
-            )
-        return {"success": True, "segment": segment, "count": len(signals), "signals": signals}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"[ERROR] Failed to fetch signals for {segment}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch signals")
-
-
-# ─── GET /alerts ─────────────────────────────────────────────
-@router.get("/alerts")
-async def get_alerts(
-    request: Request,
-    # user: AuthenticatedUser = Depends(require_driver),
-):
-    try:
-        docs = (
-            request.state.db.collection(ALERTS_COLLECTION)
-            .order_by("generated_at", direction="DESCENDING")
-            .limit(10)
-            .stream()
-        )
-        alerts = [doc.to_dict() for doc in docs]
-        return {"success": True, "count": len(alerts), "alerts": alerts}
-
-    except Exception as e:
-        print(f"[ERROR] Failed to fetch alerts: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch alerts")
-
-
-# ─── GET /alerts/{segment} ───────────────────────────────────
-@router.get("/alerts/{segment}")
-async def get_alerts_by_segment(
-    segment: str,
-    request: Request,
-    # user: AuthenticatedUser = Depends(require_driver),
-):
-    try:
-        docs = (
-            request.state.db.collection(ALERTS_COLLECTION)
-            .where(filter=FieldFilter("segment", "==", segment))
-            .order_by("generated_at", direction="DESCENDING")
-            .limit(5)
-            .stream()
-        )
-        alerts = [doc.to_dict() for doc in docs]
-
-        if not alerts:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No alerts found for segment: {segment}"
-            )
-        return {"success": True, "segment": segment, "count": len(alerts), "alerts": alerts}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"[ERROR] Failed to fetch alerts for {segment}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch alerts")
-
-
-# ─── GET /state ──────────────────────────────────────────────
-# Per-RSU status + a colored road piece between each pair of RSUs.
-# Flutter draws one line per piece and colors each marker by its RSU.
-# Auth is currently disabled. To require a logged-in driver again,
-# uncomment the dependency below.
+# --- GET /state ----------------------------------------------
 @router.get("/state")
-async def get_state(
-    request: Request,
-    # user: AuthenticatedUser = Depends(require_driver),
-):
+async def get_state(request: Request):
     db = request.state.db
     docs = (
         db.collection(SIGNALS_COLLECTION)
@@ -233,9 +115,8 @@ async def get_state(
     )
     signals = [d.to_dict() for d in docs]
 
-    # Average speed and position per RSU.
     speeds_by_rsu = defaultdict(list)
-    meta = {}  # rsu_id -> {rsu_id, lat, lng, segment}
+    meta = {}
     for s in signals:
         seg = s.get("segment")
         rid = s.get("rsu_id")
@@ -251,7 +132,6 @@ async def get_state(
                 "segment": seg,
             }
 
-    # Group RSUs by segment, with each RSU's own status.
     by_segment = defaultdict(list)
     for rid, m in meta.items():
         sp = speeds_by_rsu.get(rid, [])
@@ -261,7 +141,6 @@ async def get_state(
         entry["status"] = determine_traffic_status(avg) if avg is not None else "free"
         by_segment[m["segment"]].append(entry)
 
-    # Build one colored edge between each consecutive pair of RSUs.
     segments = []
     for seg, rsus in by_segment.items():
         ordered = _order_rsus(rsus)
@@ -282,3 +161,138 @@ async def get_state(
         })
 
     return {"success": True, "segments": segments}
+
+
+# --- GET /signals --------------------------------------------
+@router.get("/signals")
+async def get_signals(
+    request: Request,
+    user: AuthenticatedUser = Depends(require_driver),
+):
+    try:
+        docs = (
+            request.state.db.collection(SIGNALS_COLLECTION)
+            .order_by("received_at", direction="DESCENDING")
+            .limit(20)
+            .stream()
+        )
+        signals = [doc.to_dict() for doc in docs]
+        return {"success": True, "count": len(signals), "signals": signals}
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch signals: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch signals")
+
+
+# --- GET /signals/{segment} ----------------------------------
+@router.get("/signals/{segment}")
+async def get_signals_by_segment(
+    segment: str,
+    request: Request,
+    user: AuthenticatedUser = Depends(require_driver),
+):
+    try:
+        docs = (
+            request.state.db.collection(SIGNALS_COLLECTION)
+            .where(filter=FieldFilter("segment", "==", segment))
+            .order_by("received_at", direction="DESCENDING")
+            .limit(10)
+            .stream()
+        )
+        signals = [doc.to_dict() for doc in docs]
+        return {"success": True, "segment": segment, "count": len(signals), "signals": signals}
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch signals for segment {segment}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch signals")
+
+
+# --- GET /alerts ---------------------------------------------
+@router.get("/alerts")
+async def get_alerts(
+    request: Request,
+    # user: AuthenticatedUser = Depends(require_driver),
+):
+    try:
+        docs = (
+            request.state.db.collection(ALERTS_COLLECTION)
+            .order_by("generated_at", direction="DESCENDING")
+            .limit(20)
+            .stream()
+        )
+        alerts = [doc.to_dict() for doc in docs]
+        return {"success": True, "count": len(alerts), "alerts": alerts}
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch alerts: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch alerts")
+
+
+# --- GET /alerts/{segment} -----------------------------------
+@router.get("/alerts/{segment}")
+async def get_alerts_by_segment(
+    segment: str,
+    request: Request,
+    user: AuthenticatedUser = Depends(require_driver),
+):
+    try:
+        docs = (
+            request.state.db.collection(ALERTS_COLLECTION)
+            .where(filter=FieldFilter("segment", "==", segment))
+            .order_by("generated_at", direction="DESCENDING")
+            .limit(10)
+            .stream()
+        )
+        alerts = [doc.to_dict() for doc in docs]
+        return {"success": True, "segment": segment, "count": len(alerts), "alerts": alerts}
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch alerts for segment {segment}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch alerts")
+
+
+# --- GET /rsus -----------------------------------------------
+@router.get("/rsus")
+async def get_rsus(
+    request: Request,
+    # user: AuthenticatedUser = Depends(require_driver),
+):
+    try:
+        docs = request.state.db.collection("rsus").stream()
+        rsus = [doc.to_dict() for doc in docs]
+        return {"success": True, "count": len(rsus), "rsus": rsus}
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch RSUs: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch RSUs")
+
+
+# --- POST /report-incident -----------------------------------
+# Open endpoint — no auth required (testing).
+# Stores segment name, pinned coordinates, reporter UID, and timestamp
+# into the incident_reports Firestore collection.
+
+class _IncidentBody(BaseModel):
+    segment:     str
+    reported_by: Optional[str] = None
+    lat:         Optional[float] = None
+    lng:         Optional[float] = None
+
+
+@router.post("/report-incident")
+async def report_incident(body: _IncidentBody, request: Request):
+    if not body.segment.strip():
+        raise HTTPException(status_code=422, detail="segment must not be empty")
+
+    doc = {
+        "segment":     body.segment.strip(),
+        "reported_by": body.reported_by or "anonymous",
+        "reported_at": datetime.utcnow().isoformat(),
+        "status":      "open",
+        "lat":         body.lat,
+        "lng":         body.lng,
+    }
+
+    request.state.db.collection("incident_reports").add(doc)
+
+    print(f"[INCIDENT] {body.segment} | lat={body.lat} lng={body.lng} | by={body.reported_by}")
+
+    return {
+        "success": True,
+        "message": f"Incident reported on {body.segment}",
+    }
